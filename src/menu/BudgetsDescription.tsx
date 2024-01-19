@@ -16,8 +16,10 @@ type screenProps = CompositeScreenProps<
 function BudgetsDescription({route, navigation}: screenProps)
 {
 	const budget = route.params.budget;
+	//console.log('BBBBBBBBBBBBBBBBUDGET', budget['externalSystemOrderItems'])
 	const [checkOnPress, setCheckOnPress] = useState(false);
-	const [items, setItems] = useState(budget['items']);
+	const [itemsExtraData, setItemsExtraData] = useState(false);
+	const [items, setItems] = useState(budget['externalSystemOrderItems']);
 	
 	console.log(budget)
     return(
@@ -30,13 +32,15 @@ function BudgetsDescription({route, navigation}: screenProps)
 					<FlatList
 						showsVerticalScrollIndicator={false}
 						data={items}
+						extraData={itemsExtraData}
 						style={{}}
-						keyExtractor={(budgetId: any) => budgetId['externalSystemItemId']}
-						renderItem={ ({item: item}: any) =>
+						keyExtractor={(budgetId: any) => budgetId['externalSystemOrderItemId']}
+						renderItem={ ({item: externalSystemOrderItem}: any) =>
 						{
+							const externalSystemItem = externalSystemOrderItem['externalSystemItem'];
 							//item['checkOnPress'] = false;
-							const quantity = parseFloat(item['quantity']);
-							const packQuantity = parseFloat(item['packQuantity']);
+							const quantity = parseFloat(externalSystemOrderItem['quantity']);
+							const packQuantity = parseFloat(externalSystemItem['packQuantity']);
 							let collectPack = 0;
 							let collectUnity = 0;
 							if ((quantity % packQuantity) === 0.0)
@@ -62,11 +66,12 @@ function BudgetsDescription({route, navigation}: screenProps)
 										<Card.Content>
 											<View style={{}}>
 												
-												<Text style={{fontWeight: 'bold', color:'#000000', fontSize: 17, marginBottom: 5, textAlign: 'center'}}>{item['name']}</Text>
-												<Text style={{fontWeight: 'bold', color:'#000000',}}>Ean: <Text style={{fontWeight: 'normal', color:'#000000'}}>{item['ean']}</Text></Text>
-												<Text style={{fontWeight: 'bold', color:'#000000',}}>Local: <Text style={{fontWeight: 'normal', color:'#000000'}}>{item['externalSystemAreaId']}</Text></Text>
-												<Text style={{fontWeight: 'bold', color:'#000000',}}>Quantidade: <Text style={{fontWeight: 'normal', color:'#000000'}}> {item['quantity']}</Text></Text>
-												<Text style={{fontWeight: 'bold', color:'#000000',}}>Embalagem: <Text style={{fontWeight: 'normal', color:'#000000'}}>{item['packQuantity']}</Text></Text>
+												<Text style={{fontWeight: 'bold', color:'#000000', fontSize: 17, marginBottom: 5, textAlign: 'center'}}>{externalSystemItem['name']}</Text>
+												<Text style={{fontWeight: 'bold', color:'#000000',}}>Código: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemItem['externalSystemItemId']}</Text></Text>
+												<Text style={{fontWeight: 'bold', color:'#000000',}}>Ean: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemItem['ean']}</Text></Text>
+												<Text style={{fontWeight: 'bold', color:'#000000',}}>Local: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemOrderItem['spot']}</Text></Text>
+												<Text style={{fontWeight: 'bold', color:'#000000',}}>Quantidade: <Text style={{fontWeight: 'normal', color:'#000000'}}> {externalSystemOrderItem['quantity']}</Text></Text>
+												<Text style={{fontWeight: 'bold', color:'#000000',}}>Embalagem: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemItem['packQuantity']}</Text></Text>
 												<Text style={{fontWeight: 'bold', color:'#000000',}}>Coletar: <Text style={{fontWeight: 'normal', color:'#000000'}}>{collectPack === 0 ? `${collectUnity} unidade${collectUnity > 1 ? 's' : ''}` : `${collectPack} caixa${collectPack > 1 ? 's' : ''} + ${collectUnity} unidade${collectUnity > 1 ? 's' : ''}`}</Text></Text>
 											</View>
 											<View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
@@ -78,8 +83,8 @@ function BudgetsDescription({route, navigation}: screenProps)
 														marginLeft: 5,
 														//backgroundColor: '#d43226',
 														marginTop: 10,
-														backgroundColor: item['checkOnPress'] === false ? '#4c5159' : '#d43226'
-
+														backgroundColor: (externalSystemOrderItem['checkOnPress'] ?? false) ? '#d43226' : '#4c5159'
+														
 												
 													}}
 													//disabled={ syncingPendingOrders.includes(order['pendingOrderId']) }
@@ -89,12 +94,15 @@ function BudgetsDescription({route, navigation}: screenProps)
 														{
 															return prev.map((itemMap: any) =>
 															{
-																if ( itemMap['externalSystemItemId'] === item['externalSystemItemId'] )
-																	itemMap['checkOnPress'] = true;
+																if ( itemMap['externalSystemOrderItemId'] === externalSystemOrderItem['externalSystemOrderItemId'] )
+																{
+																	itemMap['checkOnPress'] = !(itemMap['checkOnPress'] ?? false);
+																}
 																
 																return itemMap;
 															});
 														});
+														setItemsExtraData( prev => !prev );
 													}
 														
 													}
@@ -120,6 +128,9 @@ function BudgetsDescription({route, navigation}: screenProps)
 													onPress={() => 
 														navigation.navigate('BudgetsSteps', {
 															screen: 'ScanBarcode',
+															params: {
+																externalSystemOrderItem: externalSystemOrderItem
+															}
 														})
 													}
 												>

@@ -6,7 +6,9 @@ export type BudgetsStepsStackNavigatorParamList = {
     BudgetsDescription:{
         budget: any;
     };   
-    ScanBarcode: any;
+    ScanBarcode: {
+        externalSystemOrderItem: any;
+    };
 };
   
 const BudgetsStepsStackNavigator = createNativeStackNavigator<BudgetsStepsStackNavigatorParamList>();

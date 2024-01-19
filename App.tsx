@@ -12,17 +12,18 @@ import {NavigatorScreenParams} from '@react-navigation/native';
 
 import {AuthStackNavigatorParamList} from './src/login/AuthStack';
 import AppStack, { AppStackParamList } from './src/navigation/AppStack';
-
+import SelectSalesForceWMSCompanyScreen from './src/navigation/SelectSalesForceWMSCompanyScreen';
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackNavigatorParamList>;
-  AppStack: NavigatorScreenParams<AppStackParamList>;
-  
+  AppStack: {selectedSalesForceWMSUser: any} | any;
+  SelectSalesForceWMSCompanyScreen: any;
 };
 
 function APISDK( this: any )
 {
     let _this = this;
-    this.BASEURL = "http://192.168.50.9:9091/api/v1";
+    this.BASEURL = "http://dilettaris.ddns.net:49591/api/v1";
+    //this.BASEURL = "http://192.168.24.205:9091/api/v1";
     this.userId = null;
     this.authorization = null;
     this.me = null;
@@ -71,9 +72,12 @@ function APISDK( this: any )
         .then(([status, data]) : any => {
             callback?.( status, data );
         })
-        .catch(error => {
+        .catch(error =>
+        {
             //console.error(error);
             console.log(error);
+
+            callback?.( -1, { message: "network error"} );
             return { name: "network error", description: "" };
         });
     };
@@ -87,8 +91,9 @@ function App(): JSX.Element {
   return (
     <NavigationContainer>
         <Stack.Navigator initialRouteName={"Auth"}>
-        <Stack.Screen name="AppStack" component={AppStack} options={{ headerShown: false }} initialParams={{ screen: "Drawer" }} />
-          <Stack.Screen name="Auth" component={AuthStack} options={{ headerShown: false }} initialParams={{ screen: "Login" }} />
+            <Stack.Screen name="AppStack" component={AppStack} options={{ headerShown: false }} initialParams={{ screen: "Drawer" }} />
+            <Stack.Screen name="SelectSalesForceWMSCompanyScreen" component={SelectSalesForceWMSCompanyScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="Auth" component={AuthStack} options={{ headerShown: false }} initialParams={{ screen: "Login" }} />   
       </Stack.Navigator>
     </NavigationContainer>
   );
