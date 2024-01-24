@@ -1,6 +1,6 @@
 import { CompositeScreenProps, useFocusEffect } from "@react-navigation/native";
 import { ActivityIndicator, Alert, Image, Modal, Platform, SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from "react-native";
-import { BudgetsStepsStackNavigatorParamList } from "../navigation/BudgetsSteps";
+import { OrderStepsStackNavigatorParamList } from "../navigation/OrderSteps";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AppStackParamList } from "../navigation/AppStack";
 
@@ -8,7 +8,7 @@ import Icon from "react-native-vector-icons/FontAwesome6";
 import { useCallback, useEffect, useState } from "react";
 import { Camera, useCameraDevice, useCodeScanner, useCameraPermission, Code } from 'react-native-vision-camera';
 type screenProps = CompositeScreenProps<
-    NativeStackScreenProps<BudgetsStepsStackNavigatorParamList, 'ScanBarcode'>,
+    NativeStackScreenProps<OrderStepsStackNavigatorParamList, 'ScanBarcode'>,
     NativeStackScreenProps<AppStackParamList>
 >;
 

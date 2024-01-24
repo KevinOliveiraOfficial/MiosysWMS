@@ -1,7 +1,7 @@
 import { CompositeScreenProps } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { FlatList, SafeAreaView, Text, TouchableOpacity, View } from "react-native";
-import { BudgetsStepsStackNavigatorParamList } from "../navigation/BudgetsSteps";
+import { OrderStepsStackNavigatorParamList } from "../navigation/OrderSteps";
 import { AppStackParamList } from "../navigation/AppStack";
 import { Card, Icon } from "react-native-paper";
 import MaterialIcons from 'react-native-vector-icons/FontAwesome6';
@@ -9,24 +9,24 @@ import { useState } from "react";
 import {Button } from '@rneui/themed';
 
 type screenProps = CompositeScreenProps<
-  NativeStackScreenProps<BudgetsStepsStackNavigatorParamList, 'BudgetsDescription'>,
+  NativeStackScreenProps<OrderStepsStackNavigatorParamList, 'OrdersDescription'>,
   NativeStackScreenProps<AppStackParamList>
 >;
 
-function BudgetsDescription({route, navigation}: screenProps)
+function OrdersDescription({route, navigation}: screenProps)
 {
-	const budget = route.params.budget;
-	//console.log('BBBBBBBBBBBBBBBBUDGET', budget['externalSystemOrderItems'])
+	const order = route.params.order;
+	//console.log('BBBBBBBBBBBBBBBBUDGET', order['externalSystemOrderItems'])
 	const [checkOnPress, setCheckOnPress] = useState(false);
 	const [itemsExtraData, setItemsExtraData] = useState(false);
-	const [items, setItems] = useState(budget['externalSystemOrderItems']);
+	const [items, setItems] = useState(order['externalSystemOrderItems']);
 	
-	console.log(budget)
+	console.log(order)
     return(
         <SafeAreaView style={{height: '100%', width: '100%', position: 'relative', backgroundColor:'#fff',padding: 10}}>
           	
 			<View style={{flex: 1,}}>
-				<Text style={{fontWeight: 'bold', color:'#000000', fontSize: 17, marginBottom: 5, textAlign: 'center'}}>Orçamento #{budget['externalSystemOrderId']} </Text>
+				<Text style={{fontWeight: 'bold', color:'#000000', fontSize: 17, marginBottom: 5, textAlign: 'center'}}>Orçamento #{order['externalSystemOrderId']} </Text>
 
 				<View style={{flex:5}}>
 					<FlatList
@@ -34,7 +34,7 @@ function BudgetsDescription({route, navigation}: screenProps)
 						data={items}
 						extraData={itemsExtraData}
 						style={{}}
-						keyExtractor={(budgetId: any) => budgetId['externalSystemOrderItemId']}
+						keyExtractor={(orderId: any) => orderId['externalSystemOrderItemId']}
 						renderItem={ ({item: externalSystemOrderItem}: any) =>
 						{
 							const externalSystemItem = externalSystemOrderItem['externalSystemItem'];
@@ -126,7 +126,7 @@ function BudgetsDescription({route, navigation}: screenProps)
 													}}
 													//disabled={ syncingPendingOrders.includes(order['pendingOrderId']) }
 													onPress={() => 
-														navigation.navigate('BudgetsSteps', {
+														navigation.navigate('OrderSteps', {
 															screen: 'ScanBarcode',
 															params: {
 																externalSystemOrderItem: externalSystemOrderItem
@@ -182,4 +182,4 @@ function BudgetsDescription({route, navigation}: screenProps)
     );
 }
 
-export default BudgetsDescription;
+export default OrdersDescription;

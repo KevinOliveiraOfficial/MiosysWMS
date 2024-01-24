@@ -8,31 +8,31 @@ import { AppNavigatorContext, AppStackParamList } from '../navigation/AppStack';
 import {RootStackParamList, API} from '../../App';
 
 type screenProps = CompositeScreenProps<
-  NativeStackScreenProps<DrawerNavigatorParamList, 'Budgets'>,
+  NativeStackScreenProps<DrawerNavigatorParamList, 'Orders'>,
   NativeStackScreenProps<AppStackParamList>
 >;
 
-function Budgets({ navigation}: screenProps)
+function Orders({ navigation}: screenProps)
 {
     const NavigatorContext = useContext(AppNavigatorContext);
 	const selectedSalesForceWMSUser: any = NavigatorContext.selectedSalesForceWMSUser;
 	const selectedCompany: any = selectedSalesForceWMSUser['salesForceCompanyLink']['company'];
     const controller = useRef<AbortController>(new AbortController());
 
-    const [budgets, setBudgets] = useState<any>([]);
-    const [budgetsExtraData, setBudgetsExtraData] = useState<number>(0);
-    const [loadBudgetsCount, setLoadBudgetsCount] = useState<number>(0);
+    const [orders, setOrders] = useState<any>([]);
+    const [ordersExtraData, setOrdersExtraData] = useState<number>(0);
+    const [loadOrdersCount, setLoadOrdersCount] = useState<number>(0);
     const [isRefreshing, setIsRefreshing] = useState<boolean>(true);
 
     useEffect(() =>
 	{
-        console.log(budgets);
+        console.log(orders);
 
-	}, [ budgets ] );
+	}, [ orders ] );
 
     useEffect(() =>
 	{
-        if ( loadBudgetsCount === 0 )
+        if ( loadOrdersCount === 0 )
             return;
 
         // carrega itens
@@ -41,8 +41,8 @@ function Budgets({ navigation}: screenProps)
             //console.log(status, response);
             if ( status === 200 )
             {
-                setBudgets( (prev: any) => [...response['result'], ...prev]);
-                setBudgetsExtraData( prev => prev + 1 );
+                setOrders( (prev: any) => [...response['result'], ...prev]);
+                setOrdersExtraData( prev => prev + 1 );
             }
             else
             {
@@ -51,12 +51,12 @@ function Budgets({ navigation}: screenProps)
             setIsRefreshing(false);
         }, controller.current );
 
-	}, [ loadBudgetsCount ] );
+	}, [ loadOrdersCount ] );
 
     useEffect(() =>
 	{
         // Init
-        setLoadBudgetsCount( prev => prev + 1 );
+        setLoadOrdersCount( prev => prev + 1 );
 
         controller.current = new AbortController();
         return () =>
@@ -72,9 +72,9 @@ function Budgets({ navigation}: screenProps)
         controller.current.abort();
         controller.current = new AbortController();
         
-        setBudgets([]);
+        setOrders([]);
         setIsRefreshing(true);
-        setLoadBudgetsCount( prev => prev + 1 );
+        setLoadOrdersCount( prev => prev + 1 );
     }, []);
     
     return(
@@ -86,7 +86,7 @@ function Budgets({ navigation}: screenProps)
                     <ActivityIndicator size="large" />
                 </View>
                 :
-              	budgets.length === 0 ?
+              	orders.length === 0 ?
 					<View style={{flex:1, justifyContent: 'center', alignItems:'center'}}>
 						<Text  style={{fontSize: 16, color:"#000000"}}>
 							Não há orçamentos pendentes!
@@ -99,21 +99,21 @@ function Budgets({ navigation}: screenProps)
                         </View>
                         <FlatList
                         showsVerticalScrollIndicator={true}
-                        data={budgets}
-                        extraData={budgetsExtraData}
-                        keyExtractor={(budget: any) => budget['externalSystemOrderId'] }
+                        data={orders}
+                        extraData={ordersExtraData}
+                        keyExtractor={(order: any) => order['externalSystemOrderId'] }
                         refreshControl={
                             <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
                         }
-                        renderItem={ ({item: budget}: any) =>
+                        renderItem={ ({item: order}: any) =>
                         {
                             return(
                             <TouchableOpacity
                                 onPress={() => {
-                                    navigation.navigate('BudgetsSteps', {
-                                        screen: 'BudgetsDescription',
+                                    navigation.navigate('OrderSteps', {
+                                        screen: 'OrdersDescription',
                                         params: {
-                                            'budget': budget
+                                            'order': order
                                         }
                                     })
                                 }}
@@ -125,7 +125,7 @@ function Budgets({ navigation}: screenProps)
                                     <Card.Content>   
                                             <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
                                                 
-                                                    <Text style={{color:'#000000', fontSize: 15}}>Orçamento #{budget['externalSystemOrderId']}</Text>
+                                                    <Text style={{color:'#000000', fontSize: 15}}>Orçamento #{order['externalSystemOrderId']}</Text>
                                                 
                                                 <Text style={{color:'red', fontSize: 13}}>Pendente</Text>
                                             </View>
@@ -141,4 +141,4 @@ function Budgets({ navigation}: screenProps)
     );
 }
 
-export default Budgets;
+export default Orders;

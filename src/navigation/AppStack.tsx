@@ -2,7 +2,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createContext, useEffect, useRef, useState } from "react";
 
 import DrawerNavigation from "./DrawerNavigation";
-import BudgetsSteps from "./BudgetsSteps";
+import OrderSteps from "./OrderSteps";
 import { RootStackParamList } from '../../App';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { EventEmitter } from "eventemitter3";
@@ -11,7 +11,7 @@ export const event = new EventEmitter();
 
 export type AppStackParamList = {
     Drawer: any;
-    BudgetsSteps: any;
+    OrderSteps: any;
 };
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -30,7 +30,7 @@ const AppStack = ({route}: NativeStackScreenProps<RootStackParamList, 'AppStack'
         >
             <Stack.Navigator initialRouteName={"Drawer"} screenOptions={{headerShown:false}}>
                 <Stack.Screen name='Drawer' component={DrawerNavigation}/>
-                <Stack.Screen name='BudgetsSteps' component={BudgetsSteps}  />
+                <Stack.Screen name='OrderSteps' component={OrderSteps}  />
             </Stack.Navigator>
 	    </AppNavigatorContext.Provider>
     )

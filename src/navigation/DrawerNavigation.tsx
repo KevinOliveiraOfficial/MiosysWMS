@@ -1,8 +1,8 @@
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import Budgets from '../menu/Budgets';
+import Orders from '../menu/Orders';
 
 export type DrawerNavigatorParamList = {
-    Budgets: any;
+    Orders: any;
 };
 
 const Drawer = createDrawerNavigator<DrawerNavigatorParamList>();
@@ -10,7 +10,7 @@ const Drawer = createDrawerNavigator<DrawerNavigatorParamList>();
 function DrawerNavigation()
 {
     return (
-        <Drawer.Navigator initialRouteName={"Budgets"} screenOptions={{
+        <Drawer.Navigator initialRouteName={"Orders"} screenOptions={{
           headerShown:false, 
           headerTransparent:false, 
           headerTitleStyle:{fontSize: 18},
@@ -31,7 +31,7 @@ function DrawerNavigation()
             //fontWeight:'500'
           }
         }}>
-			<Drawer.Screen name="Budgets" component={Budgets} options={{ title: "Orçamentos", headerShown:true}}/> 
+			<Drawer.Screen name="Orders" component={Orders} options={{ title: "Orçamentos", headerShown:true}}/> 
       
       </Drawer.Navigator>
     );

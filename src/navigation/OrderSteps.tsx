@@ -1,22 +1,22 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import BudgetsDescription from "../menu/BudgetsDescription";
+import OrdersDescription from "../menu/OrderDescription";
 import ScanBarcode from "../menu/ScanBarcode";
 
-export type BudgetsStepsStackNavigatorParamList = {
-    BudgetsDescription:{
-        budget: any;
+export type OrderStepsStackNavigatorParamList = {
+    OrdersDescription:{
+        order: any;
     };   
     ScanBarcode: {
         externalSystemOrderItem: any;
     };
 };
   
-const BudgetsStepsStackNavigator = createNativeStackNavigator<BudgetsStepsStackNavigatorParamList>();
+const OrderStepsStackNavigator = createNativeStackNavigator<OrderStepsStackNavigatorParamList>();
   
  
-const BudgetsSteps= () => {
+const OrderSteps= () => {
     return(
-        <BudgetsStepsStackNavigator.Navigator 
+        <OrderStepsStackNavigator.Navigator 
             screenOptions={{
             headerShown:false, 
             headerTransparent:false, 
@@ -30,15 +30,15 @@ const BudgetsSteps= () => {
                 },
             }}>
 
-            <BudgetsStepsStackNavigator.Screen name="BudgetsDescription" component={BudgetsDescription} options={{headerShown: true, title: 'Descrição do Orçamento'}}/>
+            <OrderStepsStackNavigator.Screen name="OrdersDescription" component={OrdersDescription} options={{headerShown: true, title: 'Descrição do Orçamento'}}/>
 
-            <BudgetsStepsStackNavigator.Screen name="ScanBarcode" component={ScanBarcode} options={{headerShown: false, title: 'Descrição do Orçamento'}}/>
+            <OrderStepsStackNavigator.Screen name="ScanBarcode" component={ScanBarcode} options={{headerShown: false, title: 'Descrição do Orçamento'}}/>
         
         {/*<RegisterOrderStackNavigator.Screen name="registerOrderSelectProducts" component={} options={{headerShown: true, title: 'Selecione os produtos'}} />*/}
   
-        </BudgetsStepsStackNavigator.Navigator>
+        </OrderStepsStackNavigator.Navigator>
     );
   };
   
   
-  export default BudgetsSteps;
+  export default OrderSteps;
