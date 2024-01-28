@@ -78,65 +78,67 @@ function Orders({ navigation}: screenProps)
     }, []);
     
     return(
-        <SafeAreaView style={{height: '100%', width: '100%', position: 'relative', backgroundColor:'#fff',paddingHorizontal: 10}}>
-            {
-                isRefreshing === true ?
-                <View style={{ marginTop: 25 }}>
-                    <Text style={{ fontWeight: "bold", fontSize: 18, color: "#737373", textAlign: "center", marginBottom: 20}}>Carregando...</Text>
-                    <ActivityIndicator size="large" />
+        <SafeAreaView style={StyleSheet.absoluteFill}>
+            <View style={{flex:1}}>
+                <View style={{marginBottom: 10}}>
+                    <Text style={{color:'#02044F', fontSize: 16, fontWeight: 'bold'}}>Loja {selectedCompany['name']}</Text>
                 </View>
-                :
-              	orders.length === 0 ?
-					<View style={{flex:1, justifyContent: 'center', alignItems:'center'}}>
-						<Text  style={{fontSize: 16, color:"#000000"}}>
-							Não há orçamentos pendentes!
-						</Text>
-					</View>
-              	:
-                    <View style={{flex:1}}>
-                        <View style={{marginBottom: 10}}>
-                            <Text style={{color:'#02044F', fontSize: 16, fontWeight: 'bold'}}>Loja {selectedCompany['name']}</Text>
+                <FlatList
+                    ListHeaderComponent=
+                    {
+                        isRefreshing === true ?
+                        <View style={{ marginTop: 25 }}>
+                            <Text style={{ fontWeight: "bold", fontSize: 18, color: "#737373", textAlign: "center", marginBottom: 20}}>Carregando...</Text>
+                            <ActivityIndicator size="large" />
                         </View>
-                        <FlatList
-                        showsVerticalScrollIndicator={true}
-                        data={orders}
-                        extraData={ordersExtraData}
-                        keyExtractor={(order: any) => order['externalSystemOrderId'] }
-                        refreshControl={
-                            <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
-                        }
-                        renderItem={ ({item: order}: any) =>
-                        {
-                            return(
-                            <TouchableOpacity
-                                onPress={() => {
-                                    navigation.navigate('OrderSteps', {
-                                        screen: 'OrdersDescription',
-                                        params: {
-                                            'order': order
-                                        }
-                                    })
-                                }}
+                        :
+                        orders.length === 0 ?
+                            <View style={{flex:1, justifyContent: 'center', alignItems:'center'}}>
+                                <Text  style={{fontSize: 16, color:"#000000"}}>
+                                    Não há orçamentos pendentes!
+                                </Text>
+                            </View>
+                        :
+                        <></>
+                    }
+                    showsVerticalScrollIndicator={true}
+                    data={orders}
+                    extraData={ordersExtraData}
+                    keyExtractor={(order: any) => order['externalSystemOrderId'] }
+                    refreshControl={
+                        <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+                    }
+                    renderItem={ ({item: order}: any) =>
+                    {
+                        return(
+                        <TouchableOpacity
+                            onPress={() => {
+                                navigation.navigate('OrderSteps', {
+                                    screen: 'OrdersDescription',
+                                    params: {
+                                        'order': order
+                                    }
+                                })
+                            }}
+                        >
+                            <Card
+                                mode="contained" 
+                                style={{marginBottom: 10, paddingVertical: 10, backgroundColor: '#ededed'}}	
                             >
-                               <Card
-                                    mode="contained" 
-                                    style={{marginBottom: 10, paddingVertical: 10, backgroundColor: '#ededed'}}	
-                                >
-                                    <Card.Content>   
-                                            <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-                                                
-                                                    <Text style={{color:'#000000', fontSize: 15}}>Orçamento #{order['externalSystemOrderId']}</Text>
-                                                
-                                                <Text style={{color:'red', fontSize: 13}}>Pendente</Text>
-                                            </View>
-                                    </Card.Content>
-                               </Card>
-                            </TouchableOpacity>
-                            );
-                        }}
-                    />
-                </View>
-            }
+                                <Card.Content>   
+                                        <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+                                            
+                                                <Text style={{color:'#000000', fontSize: 15}}>Orçamento #{order['externalSystemOrderId']}</Text>
+                                            
+                                            <Text style={{color:'red', fontSize: 13}}>Pendente</Text>
+                                        </View>
+                                </Card.Content>
+                            </Card>
+                        </TouchableOpacity>
+                        );
+                    }}
+                />
+            </View>
         </SafeAreaView>
     );
 }

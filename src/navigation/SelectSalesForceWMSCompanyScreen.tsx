@@ -66,6 +66,7 @@ const SelectSalesForceWMSCompanyScreen = ({ navigation }: NativeStackScreenProps
     
         API.api('GET', '/sales-force/wms/users/me', {}, ( status: number, response: any ) =>
         {
+            console.log(response);
             if ( status === 200 )
             {
                 setAppState( (_prev: any) =>
