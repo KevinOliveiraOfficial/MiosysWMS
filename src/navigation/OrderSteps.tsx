@@ -30,9 +30,9 @@ const OrderSteps= () => {
                 },
             }}>
 
-            <OrderStepsStackNavigator.Screen name="OrdersDescription" component={OrdersDescription} options={{headerShown: true, title: 'Descrição do Orçamento'}}/>
+            <OrderStepsStackNavigator.Screen name="OrdersDescription" component={OrdersDescription} options={{headerShown: true, title: 'Descrição do Pedido'}}/>
 
-            <OrderStepsStackNavigator.Screen name="ScanBarcode" component={ScanBarcode} options={{headerShown: false, title: 'Descrição do Orçamento'}}/>
+            <OrderStepsStackNavigator.Screen name="ScanBarcode" component={ScanBarcode} options={{headerShown: false, title: 'Escanear Item do Pedido'}}/>
         
         {/*<RegisterOrderStackNavigator.Screen name="registerOrderSelectProducts" component={} options={{headerShown: true, title: 'Selecione os produtos'}} />*/}
   

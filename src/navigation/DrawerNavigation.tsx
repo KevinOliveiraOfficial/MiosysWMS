@@ -31,7 +31,7 @@ function DrawerNavigation()
             //fontWeight:'500'
           }
         }}>
-			<Drawer.Screen name="Orders" component={Orders} options={{ title: "Orçamentos", headerShown:true}}/> 
+			<Drawer.Screen name="Orders" component={Orders} options={{ title: "Pedidos", headerShown:true}}/> 
       
       </Drawer.Navigator>
     );

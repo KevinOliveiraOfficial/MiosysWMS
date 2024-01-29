@@ -7,6 +7,39 @@ import { AppStackParamList } from "../navigation/AppStack";
 import Icon from "react-native-vector-icons/FontAwesome6";
 import { useCallback, useEffect, useState } from "react";
 import { Camera, useCameraDevice, useCodeScanner, useCameraPermission, Code } from 'react-native-vision-camera';
+
+const modalStyles = StyleSheet.create({
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)'
+    },
+    centeredView: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        //marginTop: 22,
+        marginHorizontal: 10,
+    },
+    modalView: {
+        width: "100%",
+        height: 300,
+        //margin: 20,
+        backgroundColor: '#ffffff',
+        borderRadius: 20,
+        padding: 20,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+        position: "relative"
+    },
+});
+
 type screenProps = CompositeScreenProps<
     NativeStackScreenProps<OrderStepsStackNavigatorParamList, 'ScanBarcode'>,
     NativeStackScreenProps<AppStackParamList>
@@ -15,6 +48,7 @@ type screenProps = CompositeScreenProps<
 function ScanBarcode({route, navigation}: screenProps)
 {
     const externalSystemOrderItem = route.params.externalSystemOrderItem;
+    const externalSystemItem = externalSystemOrderItem.externalSystemItem;
     externalSystemOrderItem['ean'] = "7894900504002";
 
     const { hasPermission, requestPermission } = useCameraPermission();
@@ -111,6 +145,67 @@ function ScanBarcode({route, navigation}: screenProps)
                 <Text style={{ fontWeight: "bold", fontSize: 18, color: "#737373", textAlign: "center", marginBottom: 20}}>Câmera não detectada.</Text>
             </View>
         );
+
+    if ( showModal === false )
+    {
+        return (
+        <SafeAreaView
+            style={StyleSheet.absoluteFill}
+        >
+            <View style={{flex:1, backgroundColor:'#ffffff', position: "relative"}}>
+                <View style={{flex: 4, position: "relative"}}>
+                    <Camera
+                        video={false}
+                        style={StyleSheet.absoluteFill}
+                        device={device}
+                        isActive={cameraActive && screenIsFocused && isCameraInitialized}
+                        onInitialized={onInitialized}
+                        onError={(error) => {
+                            console.log(error);
+                        }}
+                        codeScanner={codeScanner}
+                    />
+                </View>
+                <View style={{flex: 1, padding: 10, marginHorizontal: 10, position: "relative"}}>
+                    <View style={{}}>           
+                        <Text style={{fontWeight: 'bold', color:'#000000', fontSize: 17, marginBottom: 5, textAlign: 'center'}}>{externalSystemItem['name']}</Text>
+                        <Text style={{fontWeight: 'bold', color:'#000000',}}>Código: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemItem['externalSystemItemId']}</Text></Text>
+                        <Text style={{fontWeight: 'bold', color:'#000000',}}>Ean: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemItem['ean']}</Text></Text>
+                        <Text style={{fontWeight: 'bold', color:'#000000',}}>Local: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemOrderItem['spot']}</Text></Text>
+                        <Text style={{fontWeight: 'bold', color:'#000000',}}>Quantidade: <Text style={{fontWeight: 'normal', color:'#000000'}}> {externalSystemOrderItem['quantity']}</Text></Text>
+                        <Text style={{fontWeight: 'bold', color:'#000000',}}>Embalagem: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemItem['packQuantity']}</Text></Text>
+                        {/*<Text style={{fontWeight: 'bold', color:'#000000',}}>Coletar: <Text style={{fontWeight: 'normal', color:'#000000'}}>{collectPack === 0 ? `${collectUnity} unidade${collectUnity > 1 ? 's' : ''}` : `${collectPack} caixa${collectPack > 1 ? 's' : ''} + ${collectUnity} unidade${collectUnity > 1 ? 's' : ''}`}</Text></Text>*/}
+                        
+                    </View>
+                    <View style={{ marginVertical: 20}}>
+                        <ActivityIndicator size="small" color="#0000ff" style={{marginBottom: 5}} />
+                        <Text style={{color: "#000000",  textAlign: "center"}}>Aguardando escaneamento do código de barras...</Text>
+                    </View>
+                </View>
+                <View style={{flex: 1, paddingVertical: 10, margin: 10, justifyContent: "flex-end" }}>
+                    <TouchableOpacity
+                        style={{
+                            backgroundColor: '#4c5159',
+                            borderRadius: 12,
+                            padding: 15,
+                            //height: 50
+                            //backgroundColor: syncingPendingOrders.includes(order['pendingOrderId']) === true ? 'rgba(2, 4, 79, 0.5)' : 'rgba(2, 4, 79, 1)'
+
+                    
+                        }}
+                        //disabled={ syncingPendingOrders.includes(order['pendingOrderId']) }
+                        onPress={() => 
+                            {
+                                setShowModal(true);
+                            }
+                        }
+                    >
+                        <Text style={{ color: '#FFFFFF', textAlign: "center"}}>Fechar</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </SafeAreaView>);
+    }
 
     if ( showModal === false )
     {

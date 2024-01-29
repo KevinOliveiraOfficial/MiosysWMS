@@ -77,8 +77,11 @@ function APISDK( this: any )
             //console.error(error);
             console.log(error);
 
-            callback?.( -1, { message: "network error"} );
-            return { name: "network error", description: "" };
+            if ( abortController?.signal.aborted === true )
+                callback?.( -1, { message: "aborted"} );
+            else
+                callback?.( 0, { message: "network error"} );
+            //return { name: "network error", description: "" };
         });
     };
 };
