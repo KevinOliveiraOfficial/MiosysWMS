@@ -210,6 +210,7 @@ export function Login({ navigation }: screenProps )
                   style={{ padding: 0, marginLeft: 3, width:'80%', color: "#000000"}}
                   onChangeText={(user: string) => setUser(user)}
                   defaultValue={user}
+                  autoCapitalize='none'
               />
           </View>
           {/*Senha*/}
@@ -234,6 +235,7 @@ export function Login({ navigation }: screenProps )
                   secureTextEntry={true}
                   onChangeText={( password: string ) => setPassword(password)}
                   defaultValue={password}
+                  autoCapitalize='none'
               />
           </View>
           {/* botao de login */ }

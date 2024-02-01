@@ -5,6 +5,7 @@ import { DrawerNavigatorParamList } from '../navigation/DrawerNavigation';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppNavigatorContext, AppStackParamList } from '../navigation/AppStack';
 import {RootStackParamList, API} from '../../App';
+import Moment from 'moment';
 
 type screenProps = CompositeScreenProps<
   NativeStackScreenProps<DrawerNavigatorParamList, 'Orders'>,
@@ -19,7 +20,7 @@ function Orders({ navigation}: screenProps)
     const controller = useRef<AbortController>(new AbortController());
 
     const [orders, setOrders] = useState<any>([]);
-    const [ordersExtraData, setOrdersExtraData] = useState<number>(0);
+    const [ordersExtraData, setOrdersExtraData] = useState<boolean>(false);
     const [loadOrdersCount, setLoadOrdersCount] = useState<number>(0);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -30,8 +31,7 @@ function Orders({ navigation}: screenProps)
         if ( loadOrdersCount === 0 )
             return;
 
-        console.log('timestamp', timestamp);
-
+        console.log("getting from timestamp " + timestamp);   
         // carrega itens
         API.api('GET', '/sales-force/wms/orders/collect', {sales_force_wms_user_id: selectedSalesForceWMSUser['salesForceWMSUserId'], timestamp: timestamp}, ( status: number, response: any ) =>
         {
@@ -43,10 +43,10 @@ function Orders({ navigation}: screenProps)
             }
             if ( status === 200 )
             {
-                setOrders( (prev: any) => [...response['result'], ...prev]);
-                setOrdersExtraData( prev => prev + 1 );
+                setOrders( (prev: any) => [...prev, ...response['result']]);
+                setOrdersExtraData( prev => !prev );
                 setTimestamp(response['lastTimestamp']);
-                setLoadOrdersCount( prev => prev++ );
+                setLoadOrdersCount( prev => ++prev );
             }
             else
             {
@@ -55,12 +55,13 @@ function Orders({ navigation}: screenProps)
             setIsLoading(false);
             setIsRefreshing(false);
         }, controller.current );
+            
 	}, [ loadOrdersCount ] );
 
     useEffect(() =>
 	{
         // Init
-        setLoadOrdersCount( prev => prev+1);
+        setLoadOrdersCount( prev => ++prev);
 
         return () =>
         {
@@ -79,7 +80,7 @@ function Orders({ navigation}: screenProps)
         setTimestamp(0);
         setIsLoading(false);
         setIsRefreshing(true);
-        setLoadOrdersCount( prev => prev+1);
+        setLoadOrdersCount( prev => ++prev );
     }, []);
     
     return(
@@ -151,8 +152,8 @@ function Orders({ navigation}: screenProps)
                                 <Text style={{color:'red', fontSize: 13}}>Pendente</Text>
                             </View>
                             <View>
-                                <Text style={{color:'#e3e3e3', fontSize: 14}}>Criado em {order['preCheckoutAt'] ?? order['checkoutAt']}</Text>
-                                <Text style={{color:'#e3e3e3', fontSize: 14}}>{order['externalSystemOrderItems'].length} {order['externalSystemOrderItems'].length > 1 ? "itens" : "item"}</Text>
+                                <Text style={{color: "#737373", fontSize: 14}}>Criado em {Moment(new Date(order['preCheckoutAt'] ?? order['checkoutAt'])).format('DD/MM/YYYY [às] HH:mm:ss')}</Text>
+                                <Text style={{color:'#737373', fontSize: 14}}>{order['externalSystemOrderItems'].length} {order['externalSystemOrderItems'].length > 1 ? "itens" : "item"}</Text>
                             </View>
                         </TouchableOpacity>
                         );

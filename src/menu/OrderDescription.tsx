@@ -104,8 +104,7 @@ type screenProps = CompositeScreenProps<
 function OrdersDescription({route, navigation}: screenProps)
 {
 	const order = route.params.order;
-	//const [itemsExtraData, setItemsExtraData] = useState<boolean>(false);
-	const [items, setItems] = useState<any[]>([]);
+    const [scannedItems, setScannedItems] = useState<any[]>([]);
 
     // Camera states
     const { hasPermission, requestPermission } = useCameraPermission();
@@ -123,17 +122,33 @@ function OrdersDescription({route, navigation}: screenProps)
     {
         if ( device )
             requestPermission();
-
-        setItems(order['externalSystemOrderItems'].map( (k: any) => {
-            k['scannedQuantity'] = null;
-            return k;
-        }));
-
     }, []);
 
-    const onInitialized = () => {
+    const addScannedItem = useCallback(( externalSystemOrderItem: any, quantity: number ) =>
+    {
+        setScannedItems((_prev: any) =>
+        {
+            const prev = [..._prev];
+            const index = prev.findIndex( (k: any) => k['externalSystemOrderItemId'] === externalSystemOrderItem['externalSystemOrderItemId'] );
+
+            // If item not found
+            if ( index < 0 )
+            {
+                externalSystemOrderItem['scannedQuantity'] = quantity;
+                return [externalSystemOrderItem, ...prev];
+            }
+            else
+            {
+                prev[index]['scannedQuantity'] = quantity;
+            }
+
+            return prev;
+        });
+    }, []);
+
+    const onInitialized = useCallback(() => {
         setIsCameraInitialized(true);
-    };
+    }, []);
 
     const getExternalSystemOrderItemToBeScanned = useCallback(() => externalSystemOrderItemToBeScanned, [externalSystemOrderItemToBeScanned]);
 
@@ -320,7 +335,7 @@ function OrdersDescription({route, navigation}: screenProps)
                                     {
                                         const newQuantity = inputQuantityValue.length === 0 ? 0.0 : getNumberFromFormatter(inputQuantityValue);
 
-                                        setItems( (prev: any) => 
+                                        /*setItems( (prev: any) => 
                                         {
                                             return prev.map((itemMap: any) =>
                                             {
@@ -331,7 +346,9 @@ function OrdersDescription({route, navigation}: screenProps)
                                                 
                                                 return itemMap;
                                             });
-                                        });
+                                        });*/
+
+                                        addScannedItem( externalSystemOrderItemToBeScanned, newQuantity ?? 0.0 );
 
                                         setShowModal(false);
                                         setExternalSystemOrderItemToBeScanned(null);
@@ -415,14 +432,16 @@ function OrdersDescription({route, navigation}: screenProps)
 				<Text style={{fontWeight: 'bold', color:'#000000', fontSize: 17, marginVertical: 5, textAlign: 'center'}}>Pedido #{order['externalSystemOrderId']} </Text>
                 <FlatList
                     showsVerticalScrollIndicator={false}
-                    data={items}
+                    data={order['externalSystemOrderItems']}
                     //extraData={itemsExtraData}
                     style={{}}
                     keyExtractor={(orderId: any) => orderId['externalSystemOrderItemId']}
                     renderItem={ ({item: externalSystemOrderItem}: any) =>
                     {
+                        const externalSystemItemScannedQuantityNode = scannedItems.find( (k: any) => k['externalSystemItemId'] === externalSystemOrderItem['externalSystemItemId']);
+                        const scannedQuantity = externalSystemItemScannedQuantityNode?.['scannedQuantity'] ?? 0.0; 
+
                         const externalSystemItem = externalSystemOrderItem['externalSystemItem'];
-                        //item['scannedQuantity'] = false;
                         const quantity = parseFloat(externalSystemOrderItem['quantity']);
                         const quantityText = inputNumberFormatter(quantity.toFixed(2).replace(/[^\d+-]/g, ""), 2, true);
 
@@ -448,7 +467,7 @@ function OrdersDescription({route, navigation}: screenProps)
 
                             <View
                                 style={{
-                                    backgroundColor: externalSystemOrderItem['scannedQuantity'] === 0.0 ? '#fc9595' : '#ffffff',
+                                    backgroundColor: scannedQuantity === 0.0 ? '#fc9595' : '#ffffff',
                                     paddingHorizontal: 10,
                                     paddingVertical: 15,
                                     borderRadius: 5,
@@ -464,7 +483,7 @@ function OrdersDescription({route, navigation}: screenProps)
                                     marginBottom: 10,
                                     marginHorizontal: 10,
                                     borderWidth: 1,
-                                    borderColor: externalSystemOrderItem['scannedQuantity'] === 0.0 ? '#fc9595' : '#e3e3e3',
+                                    borderColor: scannedQuantity === 0.0 ? '#fc9595' : '#e3e3e3',
                                     flex: 1,
                                     position: "relative"
                                 }}
@@ -480,7 +499,7 @@ function OrdersDescription({route, navigation}: screenProps)
                                     <Text style={{fontWeight: 'bold', color:'#000000',}}>Coletar: <Text style={{fontWeight: 'normal', color:'#000000'}}>{collectPack === 0 ? `${collectUnityText} unidade${collectUnity > 1 ? 's' : ''}` : `${collectPack} caixa${collectPack > 1 ? 's' : ''} + ${collectUnityText} unidade${collectUnity > 1 ? 's' : ''}`}</Text></Text>
                                 </View>
                                 <View>
-                                    <Text style={{fontWeight: 'bold', color:'#000000', textAlign: "center"}}>Quantidade coletada: <Text style={{fontWeight: 'normal', color:'#000000'}}>{inputNumberFormatter((externalSystemOrderItem['scannedQuantity'] ?? 0.0).toFixed(2).replace(/[^\d+-]/g, ""), 2, true)}</Text></Text>
+                                    <Text style={{fontWeight: 'bold', color:'#000000', textAlign: "center"}}>Quantidade coletada: <Text style={{fontWeight: 'normal', color:'#000000'}}>{inputNumberFormatter((scannedQuantity ?? 0.0).toFixed(2).replace(/[^\d+-]/g, ""), 2, true)}</Text></Text>
                                 </View>
                                 <View style={{flex: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: 10,}}>
                                     <TouchableOpacity
@@ -489,12 +508,14 @@ function OrdersDescription({route, navigation}: screenProps)
                                             paddingHorizontal: 15,
                                             borderRadius: 10,
                                             //backgroundColor: '#d43226',
-                                            backgroundColor: externalSystemOrderItem['scannedQuantity'] === 0.0 ? '#d43226' : '#4c5159',
+                                            backgroundColor: scannedQuantity === 0.0 ? '#d43226' : '#4c5159',
                                             width: "49%"
                                         }}
                                         //disabled={ syncingPendingOrders.includes(order['pendingOrderId']) }
                                         onPress={() => 
                                         {
+                                            addScannedItem( externalSystemOrderItem, 0.0 );
+                                            /*
                                             setItems( (prev: any) => 
                                             {
                                                 return prev.map((itemMap: any) =>
@@ -507,7 +528,7 @@ function OrdersDescription({route, navigation}: screenProps)
                                                     
                                                     return itemMap;
                                                 });
-                                            });
+                                            });*/
                                             //setItemsExtraData( prev => !prev );
                                         }
                                             
@@ -569,13 +590,14 @@ function OrdersDescription({route, navigation}: screenProps)
                                 //disabled={ syncingPendingOrders.includes(order['pendingOrderId']) }
                                 onPress={() => 
                                 {
+                                    /*
                                     console.log(items.map( (k: any) => {
                                         return {
                                             external_system_order_item_id: k['externalSystemOrderItemId'],
                                             external_system_item_id: k['externalSystemItem']['externalSystemItemId'],
 		                                    quantity: (k['scannedQuantity'] ?? 0.0).toFixed(3)
                                         };
-                                    }));
+                                    }));*/
                                 }}
                             >
                                 <View style={{ flex: 1, flexDirection: 'row', position: 'relative', justifyContent: 'center'}}>

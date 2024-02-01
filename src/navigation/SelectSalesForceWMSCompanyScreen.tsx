@@ -47,21 +47,35 @@ const SelectSalesForceWMSCompanyScreen = ({ navigation }: NativeStackScreenProps
         })();
     };
 
-    const [appState, setAppState] = useState<any>({
-        'isSalesForceWMSUserLoading': true,
-        'loadSalesForceWMSUserTriggerOrigin': "init",
-        'selectedSalesForceWMSUser': null,
-        'salesForceWMSUsers': [],
-        'reloadCount': 0,
-        'isAllLoaded': false,
-    });
+    const [isSalesForceWMSUserLoading, setIsSalesForceWMSUserLoading] = useState<boolean>(true);
+    const [loadSalesForceWMSUserTrigger, setloadSalesForceWMSUserTrigger] = useState<number>(0);
+    const [loadSalesForceWMSUserTriggerOrigin, setLoadSalesForceWMSUserTriggerOrigin] = useState<string>("init");
+    const [salesForceWMSUsers, setSalesForceWMSUsers] = useState<any[]>([]);
 
     const controller = useRef<AbortController>(new AbortController());
+
+    const selectSalesForceWMSCompany = useCallback(( salesForceWMSCompany: any ) =>
+    {
+        navigation.dispatch(
+            CommonActions.reset({
+                index: 0,
+                routes: [
+                {
+                    name: 'AppStack',
+                    params: {
+                        selectedSalesForceWMSUser: salesForceWMSCompany,
+                        screen: 'Drawer',
+                    }
+                }
+                ],
+            })
+        );
+    }, [navigation]);
 
     // useEffect vai executar quando o usuário quiser trocar de loja
     useEffect(() =>
     {
-        if ( appState['reloadCount'] === 0 )
+        if ( loadSalesForceWMSUserTrigger === 0 )
             return;
     
         API.api('GET', '/sales-force/wms/users/me', {}, ( status: number, response: any ) =>
@@ -69,14 +83,8 @@ const SelectSalesForceWMSCompanyScreen = ({ navigation }: NativeStackScreenProps
             console.log(response);
             if ( status === 200 )
             {
-                setAppState( (_prev: any) =>
-                {
-                    const prev: any = {..._prev};
-                    prev['isSalesForceWMSUserLoading'] = false;
-                    prev['salesForceWMSUsers'] = response['result'];
-                    
-                    return prev;
-                });
+                setSalesForceWMSUsers(response['result']);
+                setIsSalesForceWMSUserLoading(false);
             }
             else
             {
@@ -84,38 +92,24 @@ const SelectSalesForceWMSCompanyScreen = ({ navigation }: NativeStackScreenProps
                 logoutWithoutClearData();
             }
         }, controller.current );
-    }, [ appState['reloadCount'] ] );
+    }, [ loadSalesForceWMSUserTrigger ] );
 
     const onRefresh = useCallback(() => 
     {
         // Abort current load
         controller.current.abort();
         controller.current = new AbortController();
-        
-        setAppState( (_prev :any) =>
-        {
-            // Update state
-            const prev: any = {..._prev};
 
-            prev['salesForceWMSUsers'] = [];
-            prev['isSalesForceWMSUserLoading'] = true;
-            prev['loadSalesForceWMSUserTriggerOrigin'] = "refresh";
-            prev['reloadCount']++;
-
-            return prev;
-        });
+        setLoadSalesForceWMSUserTriggerOrigin("refresh");
+        setIsSalesForceWMSUserLoading(true);
+        setSalesForceWMSUsers([]);
+        setloadSalesForceWMSUserTrigger( prev => ++prev );
     }, []);
 
     const init = () =>
     {     
         // Load seller links
-        setAppState((_prev:any) =>         
-        {
-            const prev: any = {..._prev};
-
-            prev['reloadCount']++;
-            return prev;
-        });
+        setloadSalesForceWMSUserTrigger( prev => ++prev );
         /*   
         const loggedUserRealm: any = realm.objects('logged_user')[0];
 
@@ -175,71 +169,11 @@ const SelectSalesForceWMSCompanyScreen = ({ navigation }: NativeStackScreenProps
         
 	}, []);
 
-
-    // executa quando o usuário selecionar a loja
-    // carrega os clientes da API
-    useEffect(() =>
-	{
-        if ( appState['selectedSalesForceWMSUser'] !== null && appState['reloadCount'] > 0 )
-        {
-
-            /*realm.write(() =>
-            {
-                realm.delete(realm.objects('sync'));
-                realm.delete(realm.objects('payment_type'));
-                realm.delete(realm.objects('item'));
-                realm.delete(realm.objects('item_price_table'));
-                realm.delete(realm.objects('item_stock'));
-                realm.delete(realm.objects('customer'));
-                realm.delete(realm.objects('external_system_order'));
-                realm.delete(realm.objects('external_system_order_item'));
-                realm.delete(realm.objects('pending_order'));
-                realm.delete(realm.objects('pending_order_item'));
-                realm.delete(realm.objects('seller_link_flex'));
-            });*/
-            setAppState( (_prev: any) =>
-            {
-                const prev: any = {..._prev};
-
-                prev['isAllLoaded'] = true;
-                //prev['isCurrentLoading'] = '';
-                return prev;
-            });
-        }
-        
-	}, [ appState['selectedSalesForceWMSUser'] ] );
-
-    useEffect(() =>
-    {
-        if ( appState['isAllLoaded'] === true )
-        {
-            //updateUserSelectedSalesForceWMSUser(appState['selectedSalesForceWMSUser']);
-            
-            navigation.dispatch(
-                CommonActions.reset({
-                    index: 0,
-                    routes: [
-                    {
-                        name: 'AppStack',
-                        params: {
-                            selectedSalesForceWMSUser: appState['selectedSalesForceWMSUser'],
-                            screen: 'Drawer',
-                        }
-                    }
-                    ],
-                })
-            );
-        }
-    
-    }, [ appState['isAllLoaded'], navigation ] );
-
-    // INICIO DO CARREGAMENTO DA TELA
-	if ( appState['selectedSalesForceWMSUser'] === null )
   	return(
         <SafeAreaView style={{ backgroundColor: '#fff', height: '100%', width: '100%', position: 'relative',
     padding:25}}>
         {
-            appState['isSalesForceWMSUserLoading'] === true && appState['loadSalesForceWMSUserTriggerOrigin'] !== 'refresh' ?
+            isSalesForceWMSUserLoading === true && loadSalesForceWMSUserTriggerOrigin !== 'refresh' ?
             <View style={{ marginTop: 25 }}>
                 <Text style={{ fontWeight: "bold", fontSize: 18, color: "#737373", textAlign: "center", marginBottom: 20}}>Carregando...</Text>
                 <ActivityIndicator size="large" />
@@ -284,26 +218,17 @@ const SelectSalesForceWMSCompanyScreen = ({ navigation }: NativeStackScreenProps
                 <View style={{ marginTop: 70, alignItems:'center'}}>
                     <FlatList
                         showsVerticalScrollIndicator={false}
-                        data={appState['salesForceWMSUsers']}
+                        data={salesForceWMSUsers}
                         keyExtractor={(salesForceWMSUser: any) => salesForceWMSUser['salesForceCompanyLink']['salesForceCompanyLinkId'].toString()}
                         refreshControl={
-                            <RefreshControl refreshing={appState['isSalesForceWMSUserLoading'] === true && appState['loadSalesForceWMSUserTriggerOrigin'] === 'refresh'} onRefresh={onRefresh} />
+                            <RefreshControl refreshing={isSalesForceWMSUserLoading === true && loadSalesForceWMSUserTriggerOrigin === 'refresh'} onRefresh={onRefresh} />
                         }
                         renderItem={ ({item: salesForceWMSUser}: any) => {
                             return(
                                 <TouchableOpacity
                                     onPress={() =>
                                     {
-                                        setAppState((_prev: any) =>
-                                            {
-                                                const prev: any = {..._prev};
-                                                prev['selectedSalesForceWMSUser'] = salesForceWMSUser;
-                                                //prev['isCurrentLoading'] = 'customer';
-                                                return prev;
-                                            }
-                                        );
-                                    //console.log(salesForceWMSUser)
-                                    //console.log(appState['selectedSalesForceWMSUser'])
+                                        selectSalesForceWMSCompany( salesForceWMSUser );
                                     }}
                                 >
                                     <View style={{flexDirection: 'row',}}>
