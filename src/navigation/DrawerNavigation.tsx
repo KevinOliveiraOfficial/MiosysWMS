@@ -1,9 +1,7 @@
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import Orders from '../menu/Orders';
-import FriendRequestsScreen from '../menu/FriendRequests';
 export type DrawerNavigatorParamList = {
     Orders: any;
-    FriendRequestsScreen: any;
 };
 
 const Drawer = createDrawerNavigator<DrawerNavigatorParamList>();
@@ -33,7 +31,6 @@ function DrawerNavigation()
           }
         }}>
 			<Drawer.Screen name="Orders" component={Orders} options={{ title: "Pedidos", headerShown:true}}/> 
-            <Drawer.Screen name="FriendRequestsScreen" component={FriendRequestsScreen} options={{ title: "Solicitações de Amizade", headerShown:true}}/> 
       </Drawer.Navigator>
     );
 };
