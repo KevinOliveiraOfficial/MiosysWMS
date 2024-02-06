@@ -1,7 +1,9 @@
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import Orders from '../menu/Orders';
+import LogoutScreen from '../menu/LogoutScreen';
 export type DrawerNavigatorParamList = {
     Orders: any;
+    LogoutScreen: any;
 };
 
 const Drawer = createDrawerNavigator<DrawerNavigatorParamList>();
@@ -30,7 +32,8 @@ function DrawerNavigation()
             //fontWeight:'500'
           }
         }}>
-			<Drawer.Screen name="Orders" component={Orders} options={{ title: "Pedidos", headerShown:true}}/> 
+			<Drawer.Screen name="Orders" component={Orders} options={{ title: "Pedidos", headerShown:true}} />
+            <Drawer.Screen name="LogoutScreen" component={LogoutScreen} options={{ title: "Sair", headerShown:true}} /> 
       </Drawer.Navigator>
     );
 };

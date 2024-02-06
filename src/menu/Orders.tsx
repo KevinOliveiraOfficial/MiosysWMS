@@ -12,7 +12,7 @@ type screenProps = CompositeScreenProps<
   NativeStackScreenProps<AppStackParamList>
 >;
 
-function Orders({ navigation}: screenProps)
+function Orders({ route, navigation }: screenProps)
 {
     const NavigatorContext = useContext(AppNavigatorContext);
 	const selectedSalesForceWMSUser: any = NavigatorContext.selectedSalesForceWMSUser;
@@ -35,7 +35,7 @@ function Orders({ navigation}: screenProps)
         // carrega itens
         API.api('GET', '/sales-force/wms/orders/collect', {sales_force_wms_user_id: selectedSalesForceWMSUser['salesForceWMSUserId'], timestamp: timestamp}, ( status: number, response: any ) =>
         {
-            //console.log(status, response);
+            console.log(status, response);
             // status -1 = Aborted
             if ( status === -1 )
             {
@@ -43,7 +43,7 @@ function Orders({ navigation}: screenProps)
             }
             if ( status === 200 )
             {
-                setOrders( (prev: any) => [...prev, ...response['result']]);
+                setOrders( (prev: any) => [...response['result'], ...prev]);
                 setOrdersExtraData( prev => !prev );
                 setTimestamp(response['lastTimestamp']);
                 setLoadOrdersCount( prev => ++prev );
@@ -98,12 +98,12 @@ function Orders({ navigation}: screenProps)
                             <ActivityIndicator size="large" />
                         </View>
                         :
-                        orders.length === 0 && isRefreshing === false ?
-                            <View style={{flex:1, justifyContent: 'center', alignItems:'center'}}>
-                                <Text  style={{fontSize: 16, color:"#000000"}}>
-                                    Não há pedidos para serem separados!
-                                </Text>
-                            </View>
+                        isLoading === false && isRefreshing === false ?
+                        <View style={{ marginVertical: 25, flexDirection: "row", marginHorizontal: 20, justifyContent: "center" }}>
+                            <ActivityIndicator size="small" />
+                            <Text style={{ fontWeight: "bold", color: "#737373", textAlign: "center", marginLeft: 5}}>Esperando por novos pedidos...</Text>
+                            
+                        </View>
                         :
                         <></>
                     }
@@ -142,7 +142,8 @@ function Orders({ navigation}: screenProps)
                                 navigation.navigate('OrderSteps', {
                                     screen: 'OrdersDescription',
                                     params: {
-                                        'order': order
+                                        'order': order,
+                                        mainRouteKey: route.key
                                     }
                                 })
                             }}

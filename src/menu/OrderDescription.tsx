@@ -1,10 +1,10 @@
-import { CompositeScreenProps, useFocusEffect } from "@react-navigation/native";
+import { CommonActions, CompositeScreenProps, useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { ActivityIndicator, FlatList, Modal, Platform, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView } from "react-native";
+import { ActivityIndicator, FlatList, Modal, Platform, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView, Alert } from "react-native";
 import { OrderStepsStackNavigatorParamList } from "../navigation/OrderSteps";
 import { AppStackParamList } from "../navigation/AppStack";
 import MaterialIcons from 'react-native-vector-icons/FontAwesome6';
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, Code, useCameraDevice, useCameraPermission, useCodeScanner } from "react-native-vision-camera";
 export const getNumberFromFormatter = ( currentInputValue: string ): number | null => 
 {
@@ -114,6 +114,7 @@ function OrdersDescription({route, navigation}: screenProps)
     const [cameraActive, setCameraActive] = useState<boolean>(Platform.OS === 'ios');
     const [showModal, setShowModal] = useState<boolean>(false);
     const [inputQuantityValue, setInputQuantityValue] = useState<string>('');
+    const inputRef = useRef<TextInput>(null);
 
     // Get back camera
     const device = useCameraDevice('back');
@@ -124,22 +125,26 @@ function OrdersDescription({route, navigation}: screenProps)
             requestPermission();
     }, []);
 
-    const addScannedItem = useCallback(( externalSystemOrderItem: any, quantity: number ) =>
+    const addScannedItem = useCallback(( externalSystemOrderItemAux: any, quantity: number | null ) =>
     {
+        const externalSystemOrderItem = {...externalSystemOrderItemAux};
         setScannedItems((_prev: any) =>
         {
-            const prev = [..._prev];
+            let prev = [..._prev];
             const index = prev.findIndex( (k: any) => k['externalSystemOrderItemId'] === externalSystemOrderItem['externalSystemOrderItemId'] );
 
             // If item not found
-            if ( index < 0 )
+            if ( index < 0 && quantity !== null )
             {
                 externalSystemOrderItem['scannedQuantity'] = quantity;
                 return [externalSystemOrderItem, ...prev];
             }
             else
             {
-                prev[index]['scannedQuantity'] = quantity;
+                if ( (prev[index]['scannedQuantity'] === 0.0 && quantity === 0.0) || quantity === null )
+                    prev.splice( index, 1 );
+                else
+                    prev[index]['scannedQuantity'] = quantity;
             }
 
             return prev;
@@ -190,8 +195,8 @@ function OrdersDescription({route, navigation}: screenProps)
     }, [hasPermission, isCameraInitialized]);
 
 
-    useEffect(() => {
-
+    useEffect(() =>
+    {
         if ( externalSystemOrderItemToBeScanned !== null || showModal == true )
         {
             navigation.setOptions({headerShown: false});
@@ -199,6 +204,9 @@ function OrdersDescription({route, navigation}: screenProps)
         else
         navigation.setOptions({headerShown: true});
     }, [externalSystemOrderItemToBeScanned, showModal]);
+
+
+    const canShowAlert = useRef(true);
 
     useFocusEffect(useCallback(() =>
     {
@@ -212,6 +220,32 @@ function OrdersDescription({route, navigation}: screenProps)
             if ( externalSystemOrderItemToBeScanned !== null )
             {
                 setExternalSystemOrderItemToBeScanned(null);
+                return;
+            }
+            else if (scannedItems.length !== 0)
+            {
+                if ( canShowAlert.current === false )
+                    return;
+
+                canShowAlert.current = false;
+                Alert.alert(
+                    'Tem certeza que deseja abandonar?',
+                    'Você perderá os itens escaneados e suas alterações não serão salvas.',
+                    [
+                        {
+                            text: 'Cancelar',
+                            style: 'cancel',
+                            onPress: () => canShowAlert.current = true
+                        },
+                        {
+                            text: 'Sim',
+                            style: 'default',
+                            onPress: () => {
+                                navigation.dispatch(e.data.action);
+                            }
+                        }
+                    ]
+                );
                 return;
             }
             else
@@ -244,7 +278,7 @@ function OrdersDescription({route, navigation}: screenProps)
             }
             navigation.removeListener('beforeRemove', onBackPress);
         };
-    }, [navigation, externalSystemOrderItemToBeScanned]));
+    }, [navigation, externalSystemOrderItemToBeScanned, scannedItems]));
 
     if ( externalSystemOrderItemToBeScanned !== null )
     {
@@ -278,6 +312,7 @@ function OrdersDescription({route, navigation}: screenProps)
                 visible={showModal}
                 animationType={"slide"}
                 transparent={true}
+                onShow={() => inputRef.current?.focus()}
             >
                 <View style={modalStyles.modalOverlay}>
                     <View style={modalStyles.centeredView}>
@@ -298,13 +333,14 @@ function OrdersDescription({route, navigation}: screenProps)
                                     </Text>
                                     <TextInput
                                         style={{borderBottomWidth:1, borderColor: '#868691', paddingBottom:0, marginBottom:0, color: "#000000"}}
-                                        //placeholder='Digite a quantidade...'
-                                        placeholderTextColor={'#000000'}
+                                        placeholder='Informe a quantidade...'
+                                        placeholderTextColor={'#868691'}
                                         onChangeText={(inputValue: string) => setInputQuantityValue(inputNumberFormatter(inputValue, 2, false)) }
                                         value={inputQuantityValue}
                                         defaultValue={inputQuantityValue}
                                         keyboardType="numeric"
                                         textAlign='center'
+                                        ref={inputRef}
                                     />
                                 </View>
                             </View>
@@ -333,22 +369,16 @@ function OrdersDescription({route, navigation}: screenProps)
                                 <TouchableOpacity
                                     onPress={() =>
                                     {
-                                        const newQuantity = inputQuantityValue.length === 0 ? 0.0 : getNumberFromFormatter(inputQuantityValue);
+                                        
+                                        const newQuantity = inputQuantityValue.length === 0 ? null : getNumberFromFormatter(inputQuantityValue);
 
-                                        /*setItems( (prev: any) => 
+                                        if ( newQuantity === null )
                                         {
-                                            return prev.map((itemMap: any) =>
-                                            {
-                                                if ( itemMap['externalSystemOrderItemId'] === externalSystemOrderItemToBeScanned['externalSystemOrderItemId'] )
-                                                {
-                                                    itemMap['scannedQuantity'] = newQuantity;
-                                                }
-                                                
-                                                return itemMap;
-                                            });
-                                        });*/
+                                            Alert.alert("Quantidade não informada", "Por favor, informe a quantidade!");
+                                            return;
+                                        }
 
-                                        addScannedItem( externalSystemOrderItemToBeScanned, newQuantity ?? 0.0 );
+                                        addScannedItem( externalSystemOrderItemToBeScanned, newQuantity );
 
                                         setShowModal(false);
                                         setExternalSystemOrderItemToBeScanned(null);
@@ -438,8 +468,8 @@ function OrdersDescription({route, navigation}: screenProps)
                     keyExtractor={(orderId: any) => orderId['externalSystemOrderItemId']}
                     renderItem={ ({item: externalSystemOrderItem}: any) =>
                     {
-                        const externalSystemItemScannedQuantityNode = scannedItems.find( (k: any) => k['externalSystemItemId'] === externalSystemOrderItem['externalSystemItemId']);
-                        const scannedQuantity = externalSystemItemScannedQuantityNode?.['scannedQuantity'] ?? 0.0; 
+                        const externalSystemItemScannedQuantityNode = scannedItems.find( (k: any) => k['externalSystemOrderItemId'] === externalSystemOrderItem['externalSystemOrderItemId']);
+                        const scannedQuantity = externalSystemItemScannedQuantityNode?.['scannedQuantity'] ?? undefined; 
 
                         const externalSystemItem = externalSystemOrderItem['externalSystemItem'];
                         const quantity = parseFloat(externalSystemOrderItem['quantity']);
@@ -467,7 +497,7 @@ function OrdersDescription({route, navigation}: screenProps)
 
                             <View
                                 style={{
-                                    backgroundColor: scannedQuantity === 0.0 ? '#fc9595' : '#ffffff',
+                                    backgroundColor: scannedQuantity === undefined ? "#ffffff" : scannedQuantity === 0.0 ? '#fc9595' : '#bdfcc1',
                                     paddingHorizontal: 10,
                                     paddingVertical: 15,
                                     borderRadius: 5,
@@ -483,7 +513,7 @@ function OrdersDescription({route, navigation}: screenProps)
                                     marginBottom: 10,
                                     marginHorizontal: 10,
                                     borderWidth: 1,
-                                    borderColor: scannedQuantity === 0.0 ? '#fc9595' : '#e3e3e3',
+                                    borderColor: scannedQuantity === undefined ? '#e3e3e3' : scannedQuantity === 0.0 ? '#fc9595' : '#bdfcc1',
                                     flex: 1,
                                     position: "relative"
                                 }}
@@ -498,81 +528,112 @@ function OrdersDescription({route, navigation}: screenProps)
                                     <Text style={{fontWeight: 'bold', color:'#000000',}}>Embalagem: <Text style={{fontWeight: 'normal', color:'#000000'}}>{packQuantityText}</Text></Text>
                                     <Text style={{fontWeight: 'bold', color:'#000000',}}>Coletar: <Text style={{fontWeight: 'normal', color:'#000000'}}>{collectPack === 0 ? `${collectUnityText} unidade${collectUnity > 1 ? 's' : ''}` : `${collectPack} caixa${collectPack > 1 ? 's' : ''} + ${collectUnityText} unidade${collectUnity > 1 ? 's' : ''}`}</Text></Text>
                                 </View>
+                                {
+                                scannedQuantity !== undefined &&
                                 <View>
                                     <Text style={{fontWeight: 'bold', color:'#000000', textAlign: "center"}}>Quantidade coletada: <Text style={{fontWeight: 'normal', color:'#000000'}}>{inputNumberFormatter((scannedQuantity ?? 0.0).toFixed(2).replace(/[^\d+-]/g, ""), 2, true)}</Text></Text>
                                 </View>
-                                <View style={{flex: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: 10,}}>
+                                }
+
+                                {
+                                scannedQuantity === undefined ?
+                                <View style={{flex: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: 10}}>
                                     <TouchableOpacity
                                         style={{
-                                            padding: 10,
-                                            paddingHorizontal: 15,
+                                            padding: 15,
                                             borderRadius: 10,
-                                            //backgroundColor: '#d43226',
                                             backgroundColor: scannedQuantity === 0.0 ? '#d43226' : '#4c5159',
                                             width: "49%"
                                         }}
-                                        //disabled={ syncingPendingOrders.includes(order['pendingOrderId']) }
                                         onPress={() => 
                                         {
                                             addScannedItem( externalSystemOrderItem, 0.0 );
-                                            /*
-                                            setItems( (prev: any) => 
-                                            {
-                                                return prev.map((itemMap: any) =>
-                                                {
-                                                    if ( itemMap['externalSystemOrderItemId'] === externalSystemOrderItem['externalSystemOrderItemId'] )
-                                                    {
-                                                        console.log("FFFOUND");
-                                                        itemMap['scannedQuantity'] = itemMap['scannedQuantity'] === null ? 0.0 : null;
-                                                    }
-                                                    
-                                                    return itemMap;
-                                                });
-                                            });*/
-                                            //setItemsExtraData( prev => !prev );
-                                        }
-                                            
-                                        }
+                                        }}
                                     >
-                                        <View style={{ flex: 1, flexDirection: 'row', position: 'relative', justifyContent: 'center'}}>
+                                        <View style={{ flex: 1, flexDirection: 'row', position: 'relative', justifyContent: 'center', alignItems: "center"}}>
                                             <MaterialIcons name="ban" size={16} color="#FFFFFF" solid />
-                                            <Text style={{ marginLeft: 5, color: '#FFFFFF'}}>Marcar sem estoque</Text>
+                                            <Text style={{ marginLeft: 5, color: '#FFFFFF', fontSize: 12}}>Marcar sem estoque</Text>
                                         </View>
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                         style={{
-                                            padding: 10,
-                                            paddingHorizontal: 15,
+                                            padding: 15,
                                             borderRadius: 10,
                                             backgroundColor: '#312cd1',
-                                            width: "49%"
-                                            //backgroundColor: syncingPendingOrders.includes(order['pendingOrderId']) === true ? 'rgba(2, 4, 79, 0.5)' : 'rgba(2, 4, 79, 1)'
-
-                                    
+                                            width: "49%"                                    
                                         }}
-                                        //disabled={ syncingPendingOrders.includes(order['pendingOrderId']) }
                                         onPress={() =>
                                         {
-                                            /*navigation.navigate('OrderSteps', {
-                                                screen: 'ScanBarcode',
-                                                params: {
-                                                    externalSystemOrderItem: externalSystemOrderItem
-                                                }
-                                            })*/
-
-                                            externalSystemOrderItem['externalSystemItem']['ean'] = '7891150060883';
+                                            externalSystemOrderItem['externalSystemItem']['ean'] = '7898953148220';
                                             setInputQuantityValue('');
                                             setExternalSystemOrderItemToBeScanned(externalSystemOrderItem);
                                         }}
                                     >
-                                        <View style={{ flex: 1, flexDirection: 'row', position: 'relative', justifyContent: 'center'}}>
+                                        <View style={{ flex: 1, flexDirection: 'row', position: 'relative', justifyContent: 'center', alignItems: "center"}}>
                                             <MaterialIcons name="barcode" size={17} color="#FFFFFF" solid />
-                                            <Text style={{ marginLeft: 5, color: '#FFFFFF'}}>Escanear</Text>
+                                            <Text style={{ marginLeft: 5, color: '#FFFFFF', fontSize: 12}}>Escanear</Text>
                                         </View>
                                     </TouchableOpacity>
                                 </View>
+                                :
+                                <View style={{flex: 1, marginTop: 10}}>
+                                    {
+                                    scannedQuantity === 0.0 ?
+                                    <TouchableOpacity
+                                        style={{
+                                            padding: 15,
+                                            borderRadius: 10,
+                                            backgroundColor: scannedQuantity === 0.0 ? '#d43226' : '#4c5159'
+                                        }}
+                                        onPress={() => 
+                                        {
+                                            if ( scannedQuantity !== undefined && scannedQuantity !== 0.0 )
+                                                addScannedItem( externalSystemOrderItem, null );
+                                            else
+                                                addScannedItem( externalSystemOrderItem, 0.0 );
+                                        }}
+                                    >
+                                        <View style={{ flex: 1, flexDirection: 'row', position: 'relative', justifyContent: 'center', alignItems: "center"}}>
+                                            <MaterialIcons name="ban" size={16} color="#FFFFFF" solid />
+                                            <Text style={{ marginLeft: 5, color: '#FFFFFF', fontSize: 12}}>{
+                                            (scannedQuantity === 0.0 ? "Desmarcar sem estoque" : "Marcar sem estoque")}</Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                    :
+                                    <TouchableOpacity
+                                        style={{
+                                            padding: 15,
+                                            borderRadius: 10,
+                                            backgroundColor: '#d43226'
+                                        }}
+                                        onPress={() => 
+                                        {
+                                            Alert.alert('Remover quantidade coletada', 'Tem certeza que deseja remover a quantidade coletada?',
+                                            [
+                                                {
+                                                    text: 'Cancelar',
+                                                    style: 'cancel'
+                                                },
+                                                {
+                                                    text: 'Sim',
+                                                    onPress: () => 
+                                                    {
+                                                        addScannedItem( externalSystemOrderItem, null );
+                                                    },
+                                                    style: 'default'
+                                                }
+                                            ]);
+                                        }}
+                                    >
+                                        <View style={{ flex: 1, flexDirection: 'row', position: 'relative', justifyContent: 'center', alignItems: "center"}}>
+                                            <MaterialIcons name="trash" size={16} color="#FFFFFF" solid />
+                                            <Text style={{ marginLeft: 5, color: '#FFFFFF', fontSize: 12}}>Remover quantidade coletada</Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                    }
+                                </View>
+                                }
                             </View>
-
                         );
                     }}
                     ListFooterComponent=
@@ -582,22 +643,51 @@ function OrdersDescription({route, navigation}: screenProps)
                                 style={{
                                     backgroundColor: '#088c0f',
                                     borderRadius: 12,
-                                    padding:15, 
-                                    //backgroundColor: syncingPendingOrders.includes(order['pendingOrderId']) === true ? 'rgba(2, 4, 79, 0.5)' : 'rgba(2, 4, 79, 1)'
-
-                            
+                                    padding: 15,               
                                 }}
-                                //disabled={ syncingPendingOrders.includes(order['pendingOrderId']) }
                                 onPress={() => 
                                 {
-                                    /*
-                                    console.log(items.map( (k: any) => {
-                                        return {
-                                            external_system_order_item_id: k['externalSystemOrderItemId'],
-                                            external_system_item_id: k['externalSystemItem']['externalSystemItemId'],
-		                                    quantity: (k['scannedQuantity'] ?? 0.0).toFixed(3)
-                                        };
-                                    }));*/
+                                    let isAllItemsScanned: boolean = true;
+                                    order['externalSystemOrderItems'].every( (externalSystemOrderItem: any, index: number) =>
+                                    {
+                                        const find = scannedItems.find( (k: any) => k['externalSystemOrderItemId'] === externalSystemOrderItem['externalSystemOrderItemId'] );
+                                        if ( find === undefined )
+                                        {
+                                            isAllItemsScanned = false;
+                                            return false;
+                                        }
+                                        return true;
+                                    });
+                                    if ( isAllItemsScanned === true )
+                                    {
+                                        Alert.alert('Tem certeza que deseja sincronizar?', 'Sua coleta será enviada ao sistema.',
+                                        [
+                                            {
+                                                text: 'Cancelar',
+                                                style: 'cancel'
+                                            },
+                                            {
+                                                text: 'Sincronizar',
+                                                onPress: () => 
+                                                {
+                                                    navigation.navigate("SyncOrderItemsScreen", {
+                                                        scannedExternalSystemOrderItems: scannedItems
+                                                    });
+                                                },
+                                                style: 'default'
+                                            }
+                                        ]);
+                                    }
+                                    else
+                                    {
+                                        Alert.alert('Coleta incompleta', 'Parece que a sua coleta está incompleta. Verifique os itens em branco!',
+                                        [
+                                            {
+                                                text: 'OK',
+                                                style: 'default'
+                                            }
+                                        ]); 
+                                    }
                                 }}
                             >
                                 <View style={{ flex: 1, flexDirection: 'row', position: 'relative', justifyContent: 'center'}}>
