@@ -19,12 +19,33 @@ function Orders({ route, navigation }: screenProps)
 	const selectedCompany: any = selectedSalesForceWMSUser['salesForceCompanyLink']['company'];
     const controller = useRef<AbortController>(new AbortController());
 
-    const [orders, setOrders] = useState<any>([]);
+    const syncedOrder = route.params?.syncedOrder;
+    const [syncedOrders, setSyncedOrders] = useState<any[]>([]);
+    const [orders, setOrders] = useState<any[]>([]);
     const [ordersExtraData, setOrdersExtraData] = useState<boolean>(false);
     const [loadOrdersCount, setLoadOrdersCount] = useState<number>(0);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
     const [timestamp, setTimestamp] = useState<number>(0);
+
+    useEffect(() =>
+    {
+        console.log("-------------SYNCED ORDER---------", syncedOrder);
+        if ( syncedOrder === undefined )
+            return;
+    
+        setSyncedOrders( (_prev: any) =>
+        {
+            const prev = [..._prev];
+            const index = prev.findIndex( (k: any) => k['externalSystemOrderId'] === syncedOrder['externalSystemOrderId']);
+            if ( index >= 0 )
+                prev[index] = syncedOrder;
+            else
+                prev.push(syncedOrder);
+
+            return prev;
+        });
+    }, [syncedOrder]);
 
     useEffect(() =>
 	{
@@ -116,10 +137,11 @@ function Orders({ route, navigation }: screenProps)
                     }
                     renderItem={ ({item: order}: any) =>
                     {
+                        const isSynced = syncedOrders.find( (k: any) => k['externalSystemOrderId'] === order['externalSystemOrderId'] ) !== undefined;
                         return(
                         <TouchableOpacity
                             style={{
-                                backgroundColor: '#ffffff',
+                                backgroundColor: isSynced === true ? "#bdfcc1" : '#ffffff',
                                 padding: 20,
                                 borderRadius: 5,
                                 shadowColor: "#171717",
@@ -134,7 +156,7 @@ function Orders({ route, navigation }: screenProps)
                                 marginBottom: 10,
                                 marginHorizontal: 10,
                                 borderWidth: 1,
-                                borderColor: '#e3e3e3',
+                                borderColor: isSynced === true ? "#94fd9b" : '#e3e3e3',
                                 flex: 1,
                                 position: "relative"
                             }}
@@ -150,7 +172,12 @@ function Orders({ route, navigation }: screenProps)
                         >
                             <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
                                 <Text style={{color:'#000000', fontSize: 15}}>Pedido #{order['externalSystemOrderId']}</Text>
-                                <Text style={{color:'red', fontSize: 13}}>Pendente</Text>
+                                {
+                                    isSynced === true ?
+                                    <Text style={{color:'#026902', fontWeight: "bold"}}>Enviado</Text>
+                                    :
+                                    <Text style={{color:'#bd0407', fontWeight: "bold"}}>Pendente</Text>
+                                }
                             </View>
                             <View>
                                 <Text style={{color: "#737373", fontSize: 14}}>Criado em {Moment(new Date(order['preCheckoutAt'] ?? order['checkoutAt'])).format('DD/MM/YYYY [às] HH:mm:ss')}</Text>

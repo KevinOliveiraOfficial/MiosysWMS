@@ -8,6 +8,7 @@ export type OrderStepsStackNavigatorParamList = {
         order: any;
     };
     SyncOrderItemsScreen: {
+        order: any;
         scannedExternalSystemOrderItems: any[];
     };
     ScanBarcode: {

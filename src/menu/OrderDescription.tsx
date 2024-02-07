@@ -6,6 +6,7 @@ import { AppStackParamList } from "../navigation/AppStack";
 import MaterialIcons from 'react-native-vector-icons/FontAwesome6';
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, Code, useCameraDevice, useCameraPermission, useCodeScanner } from "react-native-vision-camera";
+import { DrawerNavigatorParamList } from "../navigation/DrawerNavigation";
 export const getNumberFromFormatter = ( currentInputValue: string ): number | null => 
 {
     currentInputValue = currentInputValue.trim();
@@ -98,7 +99,7 @@ const modalStyles = StyleSheet.create({
 
 type screenProps = CompositeScreenProps<
   NativeStackScreenProps<OrderStepsStackNavigatorParamList, 'OrdersDescription'>,
-  NativeStackScreenProps<AppStackParamList>
+  NativeStackScreenProps<DrawerNavigatorParamList>
 >;
 
 function OrdersDescription({route, navigation}: screenProps)
@@ -671,6 +672,7 @@ function OrdersDescription({route, navigation}: screenProps)
                                                 onPress: () => 
                                                 {
                                                     navigation.navigate("SyncOrderItemsScreen", {
+                                                        order: order,
                                                         scannedExternalSystemOrderItems: scannedItems
                                                     });
                                                 },

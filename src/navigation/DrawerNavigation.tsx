@@ -2,7 +2,9 @@ import { createDrawerNavigator } from '@react-navigation/drawer';
 import Orders from '../menu/Orders';
 import LogoutScreen from '../menu/LogoutScreen';
 export type DrawerNavigatorParamList = {
-    Orders: any;
+    Orders: any | {
+        syncedOrder: any;
+    };
     LogoutScreen: any;
 };
 

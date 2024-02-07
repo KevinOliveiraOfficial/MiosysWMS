@@ -63,14 +63,14 @@ const SyncOrderItemsScreen = ({route, navigation}: screenProps) =>
             return;
         };
 
-        //navigation.addListener('beforeRemove', onBackPress);
+        navigation.addListener('beforeRemove', onBackPress);
         
         return () =>
         {
             // Do something that should run on blur
             console.log('SyncOrderItemsScreen BLUR DETECTED');
 
-            //navigation.removeListener('beforeRemove', onBackPress);
+            navigation.removeListener('beforeRemove', onBackPress);
         };
     }, [navigation]));
 
@@ -87,6 +87,10 @@ const SyncOrderItemsScreen = ({route, navigation}: screenProps) =>
             }))
         };
         console.log(request);
+
+        navigation.navigate("Orders", {
+            syncedOrder: route.params.order
+        });
 
         /*
         API.api('GET', `/sales-force/wms/orders/collect`, request, ( status: number, response: any ) =>
