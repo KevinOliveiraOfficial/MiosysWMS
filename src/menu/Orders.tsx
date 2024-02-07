@@ -71,7 +71,13 @@ function Orders({ route, navigation }: screenProps)
             }
             else
             {
-                Alert.alert("Falha ao obter novos pedidos", response.message);
+                //Alert.alert("Falha ao obter novos pedidos", "Tentaremos novamente em 5 segundos" + response.message);
+                console.log("Falha ao obter novos pedidos.", response.message);
+
+                // Try again after 5 seconds
+                setTimeout(() => {
+                    setLoadOrdersCount( prev => ++prev );
+                }, 5000);
             }
             setIsLoading(false);
             setIsRefreshing(false);
