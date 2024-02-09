@@ -1,9 +1,11 @@
 import 'react-native-gesture-handler';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 import {
   SafeAreaView, View, Text
 } from 'react-native';
+
+import * as Keychain from 'react-native-keychain';
 
 import AuthStack from './src/login/AuthStack';
 import { NavigationContainer } from '@react-navigation/native';
@@ -23,7 +25,7 @@ function APISDK( this: any )
 {
     let _this = this;
     this.BASEURL = "http://api-miosys.ddns.net:49591/api/v1";
-    this.BASEURL = "http://179.106.195.136:9091/api/v1";
+    this.BASEURL = "http://192.168.24.58:9091/api/v1";
     this.userId = null;
     this.authorization = null;
     this.me = null;
@@ -90,10 +92,64 @@ export var API = new (APISDK as any)();
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-function App(): JSX.Element {
+function App(): JSX.Element
+{
+    
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [isLoggedIn, setIsLoggedIn] = useState<boolean>(true);
+    
+    useEffect(() =>
+    {  
+        (async () =>
+        {
+            try
+            {
+                // Retrieve the API credentials
+                const APICredentials = await Keychain.getInternetCredentials('API');
+                if (APICredentials)
+                {
+                    console.log('Credentials successfully loaded for user ' + APICredentials.username + ', token ' + APICredentials.password);
+
+                    // default loggedin user
+                    let loggedUser: any = {
+                        userId: parseInt(APICredentials.username),
+                        firstName: "unknown",
+                        lastName: "unknown"
+                    };
+                    /*
+                    let loggedUserResult = realm.objects('logged_user');
+                    if ( loggedUserResult.length !== 0 )
+                    {
+                        loggedUser['firstName'] = loggedUserResult[0]['firstName'];
+                        loggedUser['lastName'] = loggedUserResult[0]['lastName'];
+                    }*/
+
+                    // Setting up API
+                    API.init( APICredentials.username, APICredentials.password );
+                    API.me = loggedUser;
+
+                    setIsLoggedIn(true);
+                    setIsLoading(false);
+                }
+                else
+                {
+                    setIsLoading(false);
+                }
+            }
+            catch (error)
+            {
+                setIsLoading(false);
+                console.log("Keychain couldn't be accessed!", error);
+            }
+        })();
+    }, []);
+    
   return (
+    isLoading === true ?
+    <></>
+    :
     <NavigationContainer>
-        <Stack.Navigator initialRouteName={"Auth"}>
+        <Stack.Navigator initialRouteName={isLoggedIn ? "SelectSalesForceWMSCompanyScreen" : "Auth"}>
             <Stack.Screen name="AppStack" component={AppStack} options={{ headerShown: false }} initialParams={{ screen: "Drawer" }} />
             <Stack.Screen name="SelectSalesForceWMSCompanyScreen" component={SelectSalesForceWMSCompanyScreen} options={{ headerShown: false }} />
             <Stack.Screen name="Auth" component={AuthStack} options={{ headerShown: false }} initialParams={{ screen: "Login" }} />   
