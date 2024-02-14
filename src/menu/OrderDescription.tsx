@@ -110,12 +110,11 @@ function OrdersDescription({route, navigation}: screenProps)
     // Camera states
     const { hasPermission, requestPermission } = useCameraPermission();
     const [externalSystemOrderItemToBeScanned, setExternalSystemOrderItemToBeScanned] = useState<any>(null);
-    const [screenIsFocused, setScreenIsFocused] = useState<boolean>(false);
     const [isCameraInitialized, setIsCameraInitialized] = useState<boolean>(false);
     const [cameraActive, setCameraActive] = useState<boolean>(Platform.OS === 'ios');
     const [showModal, setShowModal] = useState<boolean>(false);
     const [inputQuantityValue, setInputQuantityValue] = useState<string>('');
-    const inputRef = useRef<TextInput>(null);
+    const inputRef = useRef<any>();
 
     // Get back camera
     const device = useCameraDevice('back');
@@ -154,26 +153,24 @@ function OrdersDescription({route, navigation}: screenProps)
 
     const onInitialized = useCallback(() => {
         setIsCameraInitialized(true);
+        //setCameraActive(true);
     }, []);
 
-    const getExternalSystemOrderItemToBeScanned = useCallback(() => externalSystemOrderItemToBeScanned, [externalSystemOrderItemToBeScanned]);
+    const onCodeScannedCallback = useCallback((codes: Code[]) =>
+    {
+        codes.forEach( ( code: Code ) =>
+        {
+            if ( externalSystemOrderItemToBeScanned['externalSystemItem']['ean'] === code.value)
+            {
+                setCameraActive(false);
+                setShowModal(true);
+            }
+        });
+    }, [externalSystemOrderItemToBeScanned]);
 
     const codeScanner = useCodeScanner({
         codeTypes: ['qr', 'ean-13'],
-        onCodeScanned: (codes: Code[]) =>
-        {
-            let tmp = getExternalSystemOrderItemToBeScanned();
-            console.log('tmppp', tmp);
-            codes.forEach( ( code: Code ) =>
-            {
-                if ( tmp['externalSystemItem']['ean'] === code.value)
-                {
-                    setCameraActive(false);
-                    setShowModal(true);
-                }
-                console.log(code.value);
-            });
-        }
+        onCodeScanned: onCodeScannedCallback
     });
 
     useEffect(() =>
@@ -185,7 +182,7 @@ function OrdersDescription({route, navigation}: screenProps)
   
         //let timeout: NodeJS.Timeout;
         if (hasPermission && isCameraInitialized) {
-            setCameraActive(true)
+            setCameraActive(true);
             //timeout = setTimeout(() => setCameraActive(true), 2000);
         }
     
@@ -203,7 +200,9 @@ function OrdersDescription({route, navigation}: screenProps)
             navigation.setOptions({headerShown: false});
         }
         else
-        navigation.setOptions({headerShown: true});
+        {
+            navigation.setOptions({headerShown: true});
+        }
     }, [externalSystemOrderItemToBeScanned, showModal]);
 
 
@@ -256,8 +255,6 @@ function OrdersDescription({route, navigation}: screenProps)
         };
         navigation.addListener('beforeRemove', onBackPress);
 
-        
-        setScreenIsFocused(true);
 
         if ( showModal === false )
         {
@@ -272,7 +269,6 @@ function OrdersDescription({route, navigation}: screenProps)
             // Do something that should run on blur
             console.log('BLUR DETECTED');
 
-            setScreenIsFocused(false);
             if ( isCameraInitialized )
             {
                 setCameraActive(false);
@@ -289,22 +285,22 @@ function OrdersDescription({route, navigation}: screenProps)
 
         const packQuantity = parseFloat(externalSystemItem['packQuantity']);
         const packQuantityText = inputNumberFormatter(packQuantity.toFixed(2).replace(/[^\d+-]/g, ""), 2, true);
-        let collectPack = 0;
-        let collectUnity = 0;
-        if ((quantity % packQuantity) === 0.0)
+        let collectPack = 0.0;
+        let collectUnity = 0.0;
+
+        if ( packQuantity === 1.0 )
         {
-            if ( packQuantity === 1.0 )
-                collectUnity = quantity / packQuantity;
-            else
-                collectPack = quantity / packQuantity;
+            collectUnity = quantity;
         }
         else
         {
-            collectPack = Math.trunc(quantity / packQuantity);
-            collectUnity = quantity - (collectPack * packQuantity);			
+            collectPack = quantity;
         }
 
         const collectUnityText = inputNumberFormatter(collectUnity.toFixed(2).replace(/[^\d+-]/g, ""), 2, true);
+        const collectPackText = inputNumberFormatter(collectPack.toFixed(2).replace(/[^\d+-]/g, ""), 2, true);
+        const collectText = collectPack > 0.0 ? (`${collectPackText} fardo` + (collectPack > 1.0 ? "s" : "")) : (`${collectUnityText} fardo` + (collectUnity > 1.0 ? "s" : ""));
+
         return (
         <SafeAreaView style={StyleSheet.absoluteFill}>
             {
@@ -313,20 +309,27 @@ function OrdersDescription({route, navigation}: screenProps)
                 visible={showModal}
                 animationType={"slide"}
                 transparent={true}
-                onShow={() => inputRef.current?.focus()}
             >
                 <View style={modalStyles.modalOverlay}>
                     <View style={modalStyles.centeredView}>
                         <View style={modalStyles.modalView}>
                             <View style={{ width: "100%", flex: 1}}>
-                                <View style={{marginBottom: 20, paddingBottom: 10, borderBottomWidth:1, borderColor: '#868691',}}>           
+                                <View style={{ marginBottom: 10 }}>  
                                     <Text style={{fontWeight: 'bold', color:'#000000', fontSize: 17, marginBottom: 5, textAlign: 'center'}}>{externalSystemItem['name']}</Text>
                                     <Text style={{fontWeight: 'bold', color:'#000000',}}>Código: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemItem['externalSystemItemId']}</Text></Text>
-                                    <Text style={{fontWeight: 'bold', color:'#000000',}}>Ean: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemItem['ean']}</Text></Text>
-                                    <Text style={{fontWeight: 'bold', color:'#000000',}}>Local: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemOrderItemToBeScanned['spot']}</Text></Text>
-                                    <Text style={{fontWeight: 'bold', color:'#000000',}}>Quantidade: <Text style={{fontWeight: 'normal', color:'#000000'}}>{quantityText}</Text></Text>
-                                    <Text style={{fontWeight: 'bold', color:'#000000',}}>Embalagem: <Text style={{fontWeight: 'normal', color:'#000000'}}>{packQuantityText}</Text></Text>
-                                    <Text style={{fontWeight: 'bold', color:'#000000',}}>Coletar: <Text style={{fontWeight: 'normal', color:'#000000'}}>{collectPack === 0 ? `${collectUnityText} unidade${collectUnity > 1 ? 's' : ''}` : `${collectPack} caixa${collectPack > 1 ? 's' : ''} + ${collectUnityText} unidade${collectUnity > 1 ? 's' : ''}`}</Text></Text>
+                                    <Text style={{fontWeight: 'bold', color:'#000000'}}><MaterialIcons name="barcode" size={16} color="#000000" solid /> EAN: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemItem['ean']}</Text></Text>
+                                    <Text style={{fontWeight: 'bold', color:'#000000',}}>Quantidade contida no fardo: <Text style={{fontWeight: 'normal', color:'#000000'}}>{packQuantityText}</Text></Text>
+                                </View>
+                                <View
+                                    style={{
+                                        backgroundColor: '#edebe6',
+                                        padding: 15,
+                                        borderRadius: 20,
+                                        marginBottom: 20,
+                                    }}
+                                >
+                                    <Text style={{fontWeight: 'bold', color:'#000000', textAlign: 'center'}}><MaterialIcons name="location-dot" size={16} color="#000000" solid /> Ponto de coleta: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemOrderItemToBeScanned['spot']}</Text></Text>
+                                    <Text style={{marginTop: 10, fontWeight: 'bold', color:'#000000', textAlign: 'center', }}>Necessário Coletar: <Text style={{fontWeight: 'normal', color:'#000000'}}>{collectText}</Text></Text>
                                 </View>
                                 <View>
                                     <Text  style={{alignSelf: 'center', color: "#000000", marginTop:10, fontWeight: "bold"}}>
@@ -342,6 +345,12 @@ function OrdersDescription({route, navigation}: screenProps)
                                         keyboardType="numeric"
                                         textAlign='center'
                                         ref={inputRef}
+                                        autoFocus={false}
+                                        onLayout={ () => {
+                                            setTimeout(() => {
+                                                inputRef?.current?.focus();
+                                            }, 100);
+                                        }}
                                     />
                                 </View>
                             </View>
@@ -406,14 +415,14 @@ function OrdersDescription({route, navigation}: screenProps)
             </Modal>
             :
             <View style={{flex:1, backgroundColor:'#ffffff', position: "relative"}}>
-                <View style={{flex: 4, position: "relative"}}>
+                <View style={{flex: 3, position: "relative"}}>
                     {
                     device &&
                     <Camera
                         video={false}
                         style={StyleSheet.absoluteFill}
                         device={device}
-                        isActive={cameraActive && screenIsFocused && isCameraInitialized}
+                        isActive={cameraActive}
                         onInitialized={onInitialized}
                         onError={(error) => {
                             console.log(error);
@@ -423,14 +432,21 @@ function OrdersDescription({route, navigation}: screenProps)
                     }
                 </View>
                 <View style={{flex: 1, padding: 10, marginHorizontal: 10, position: "relative"}}>
-                    <View>           
+                    <View style={{ marginBottom: 10}}>  
                         <Text style={{fontWeight: 'bold', color:'#000000', fontSize: 17, marginBottom: 5, textAlign: 'center'}}>{externalSystemItem['name']}</Text>
                         <Text style={{fontWeight: 'bold', color:'#000000',}}>Código: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemItem['externalSystemItemId']}</Text></Text>
-                        <Text style={{fontWeight: 'bold', color:'#000000',}}>Ean: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemItem['ean']}</Text></Text>
-                        <Text style={{fontWeight: 'bold', color:'#000000',}}>Local: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemOrderItemToBeScanned['spot']}</Text></Text>
-                        <Text style={{fontWeight: 'bold', color:'#000000',}}>Quantidade: <Text style={{fontWeight: 'normal', color:'#000000'}}>{quantityText}</Text></Text>
-                        <Text style={{fontWeight: 'bold', color:'#000000',}}>Embalagem: <Text style={{fontWeight: 'normal', color:'#000000'}}>{packQuantityText}</Text></Text>
-                        <Text style={{fontWeight: 'bold', color:'#000000',}}>Coletar: <Text style={{fontWeight: 'normal', color:'#000000'}}>{collectPack === 0 ? `${collectUnityText} unidade${collectUnity > 1 ? 's' : ''}` : `${collectPack} caixa${collectPack > 1 ? 's' : ''} + ${collectUnityText} unidade${collectUnity > 1 ? 's' : ''}`}</Text></Text>
+                        <Text style={{fontWeight: 'bold', color:'#000000'}}><MaterialIcons name="barcode" size={16} color="#000000" solid /> EAN: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemItem['ean']}</Text></Text>
+                        <Text style={{fontWeight: 'bold', color:'#000000',}}>Quantidade contida no fardo: <Text style={{fontWeight: 'normal', color:'#000000'}}>{packQuantityText}</Text></Text>
+                    </View>
+                    <View
+                        style={{
+                            backgroundColor: '#edebe6',
+                            padding: 15,
+                            borderRadius: 20
+                        }}
+                    >
+                        <Text style={{fontWeight: 'bold', color:'#000000', textAlign: 'center'}}><MaterialIcons name="location-dot" size={16} color="#000000" solid /> Ponto de coleta: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemOrderItemToBeScanned['spot']}</Text></Text>
+                        <Text style={{marginTop: 10, fontWeight: 'bold', color:'#000000', textAlign: 'center', }}>Necessário Coletar: <Text style={{fontWeight: 'normal', color:'#000000'}}>{collectText}</Text></Text>
                     </View>
                     <View style={{ marginVertical: 20}}>
                         <ActivityIndicator size="small" color="#0000ff" style={{marginBottom: 5}} />
@@ -478,22 +494,22 @@ function OrdersDescription({route, navigation}: screenProps)
 
                         const packQuantity = parseFloat(externalSystemItem['packQuantity']);
                         const packQuantityText = inputNumberFormatter(packQuantity.toFixed(2).replace(/[^\d+-]/g, ""), 2, true);
-                        let collectPack = 0;
-                        let collectUnity = 0;
-                        if ((quantity % packQuantity) === 0.0)
+                        let collectPack = 0.0;
+                        let collectUnity = 0.0;
+
+                        if ( packQuantity === 1.0 )
                         {
-                            if ( packQuantity === 1.0 )
-                                collectUnity = quantity / packQuantity;
-                            else
-                                collectPack = quantity / packQuantity;
+                            collectUnity = quantity;
                         }
                         else
                         {
-                            collectPack = Math.trunc(quantity / packQuantity);
-                            collectUnity = quantity - (collectPack * packQuantity);			
+                            collectPack = quantity;
                         }
 
                         const collectUnityText = inputNumberFormatter(collectUnity.toFixed(2).replace(/[^\d+-]/g, ""), 2, true);
+                        const collectPackText = inputNumberFormatter(collectPack.toFixed(2).replace(/[^\d+-]/g, ""), 2, true);
+                        const collectText = collectPack > 0.0 ? (`${collectPackText} fardo` + (collectPack > 1.0 ? "s" : "")) : (`${collectUnityText} fardo` + (collectUnity > 1.0 ? "s" : ""));
+
                         return(
 
                             <View
@@ -519,22 +535,29 @@ function OrdersDescription({route, navigation}: screenProps)
                                     position: "relative"
                                 }}
                             >
-                                <View style={{ marginBottom: 10}}>
-                                    
+                                <View style={{ marginBottom: 10}}>  
                                     <Text style={{fontWeight: 'bold', color:'#000000', fontSize: 17, marginBottom: 5, textAlign: 'center'}}>{externalSystemItem['name']}</Text>
                                     <Text style={{fontWeight: 'bold', color:'#000000',}}>Código: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemItem['externalSystemItemId']}</Text></Text>
-                                    <Text style={{fontWeight: 'bold', color:'#000000',}}>EAN: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemItem['ean']}</Text></Text>
-                                    <Text style={{fontWeight: 'bold', color:'#000000',}}>Local: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemOrderItem['spot']}</Text></Text>
-                                    <Text style={{fontWeight: 'bold', color:'#000000',}}>Quantidade: <Text style={{fontWeight: 'normal', color:'#000000'}}>{quantityText}</Text></Text>
-                                    <Text style={{fontWeight: 'bold', color:'#000000',}}>Embalagem: <Text style={{fontWeight: 'normal', color:'#000000'}}>{packQuantityText}</Text></Text>
-                                    <Text style={{fontWeight: 'bold', color:'#000000',}}>Coletar: <Text style={{fontWeight: 'normal', color:'#000000'}}>{collectPack === 0 ? `${collectUnityText} unidade${collectUnity > 1 ? 's' : ''}` : `${collectPack} caixa${collectPack > 1 ? 's' : ''} + ${collectUnityText} unidade${collectUnity > 1 ? 's' : ''}`}</Text></Text>
+                                    <Text style={{fontWeight: 'bold', color:'#000000'}}><MaterialIcons name="barcode" size={16} color="#000000" solid /> EAN: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemItem['ean']}</Text></Text>
+                                    <Text style={{fontWeight: 'bold', color:'#000000',}}>Quantidade contida no fardo: <Text style={{fontWeight: 'normal', color:'#000000'}}>{packQuantityText}</Text></Text>
                                 </View>
-                                {
-                                scannedQuantity !== undefined &&
-                                <View>
-                                    <Text style={{fontWeight: 'bold', color:'#000000', textAlign: "center"}}>Quantidade coletada: <Text style={{fontWeight: 'normal', color:'#000000'}}>{inputNumberFormatter((scannedQuantity ?? 0.0).toFixed(2).replace(/[^\d+-]/g, ""), 2, true)}</Text></Text>
+                                <View
+                                    style={{
+                                        backgroundColor: scannedQuantity === undefined ? '#edebe6' : scannedQuantity === 0.0 ? '#e7736a' : '#a8e2ac',
+                                        padding: 15,
+                                        borderRadius: 20,
+                                        marginBottom: 10
+                                    }}
+                                >
+                                    <Text style={{fontWeight: 'bold', color:'#000000', textAlign: 'center'}}><MaterialIcons name="location-dot" size={16} color="#000000" solid /> Ponto de coleta: <Text style={{fontWeight: 'normal', color:'#000000'}}>{externalSystemOrderItem['spot']}</Text></Text>
+                                    <Text style={{marginTop: 10, fontWeight: 'bold', color:'#000000', textAlign: 'center', }}>Necessário Coletar: <Text style={{fontWeight: 'normal', color:'#000000'}}>{collectText}</Text></Text>
+                                    {
+                                    scannedQuantity !== undefined &&
+                                    <View>
+                                        <Text style={{fontWeight: 'bold', color:'#000000', textAlign: "center"}}>Quantidade coletada: <Text style={{fontWeight: 'normal', color:'#000000'}}>{inputNumberFormatter((scannedQuantity ?? 0.0).toFixed(2).replace(/[^\d+-]/g, ""), 2, true)}</Text></Text>
+                                    </View>
+                                    }
                                 </View>
-                                }
 
                                 {
                                 scannedQuantity === undefined ?
@@ -565,7 +588,7 @@ function OrdersDescription({route, navigation}: screenProps)
                                         }}
                                         onPress={() =>
                                         {
-                                            externalSystemOrderItem['externalSystemItem']['ean'] = '7898953148220';
+                                            externalSystemOrderItem['externalSystemItem']['ean'] = '7898043362390';
                                             setInputQuantityValue('');
                                             setExternalSystemOrderItemToBeScanned(externalSystemOrderItem);
                                         }}
