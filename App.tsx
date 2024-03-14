@@ -25,7 +25,7 @@ function APISDK( this: any )
 {
     let _this = this;
     this.BASEURL = "http://api-miosys.ddns.net:49591/api/v1";
-    this.BASEURL = "http://192.168.1.34:9091/api/v1";
+    this.BASEURL = "http://192.168.137.1:9091/api/v1";
     this.userId = null;
     this.authorization = null;
     this.me = null;

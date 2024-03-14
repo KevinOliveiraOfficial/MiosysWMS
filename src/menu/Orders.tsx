@@ -23,10 +23,19 @@ function Orders({ route, navigation }: screenProps)
     const [syncedOrders, setSyncedOrders] = useState<any[]>([]);
     const [orders, setOrders] = useState<any[]>([]);
     const [ordersExtraData, setOrdersExtraData] = useState<boolean>(false);
+
+    const [maxResultReached, setMaxResultReached] = useState<boolean>(false);
+    const [isLoadingOrders, setIsLoadingOrders] = useState<boolean>(true);
+    const [loadOrdersTriggerOrigin, setLoadOrdersTriggerOrigin] = useState<string>("init");
     const [loadOrdersCount, setLoadOrdersCount] = useState<number>(0);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-    const [timestamp, setTimestamp] = useState<number>(0);
+
+    const [listenOrdersCount, setListenOrdersCount] = useState<number>(0);
+
+    const [listenOrdersBiggestTimestamp, setListenOrdersBiggestTimestamp] = useState<number>(0);
+    const [listenOrdersOffsetExternalSystemOrderId, setListenOrdersOffsetExternalSystemOrderId] = useState<string>("");
+
+    const [loadOrdersLowestTimestamp, setLoadOrdersLowestTimestamp] = useState<number>(0);
+    const [loadOrdersOffsetExternalSystemOrderId, setLoadOrdersOffsetExternalSystemOrderId] = useState<string>("");
 
     useEffect(() =>
     {
@@ -49,12 +58,21 @@ function Orders({ route, navigation }: screenProps)
 
     useEffect(() =>
 	{
-        if ( loadOrdersCount === 0 )
+        if ( listenOrdersCount === 0 )
             return;
 
-        console.log("getting from timestamp " + timestamp);   
+        const request: any = { sales_force_wms_user_id: selectedSalesForceWMSUser['salesForceWMSUserId'] };
+
+        if ( listenOrdersBiggestTimestamp !== 0 )
+            request.timestamp = listenOrdersBiggestTimestamp;
+
+        if ( listenOrdersOffsetExternalSystemOrderId !== "" )
+            request.offset_external_system_order_id = listenOrdersOffsetExternalSystemOrderId;
+
+        console.log("request" + request);
+
         // carrega itens
-        API.api('GET', '/sales-force/wms/orders/collect', {sales_force_wms_user_id: selectedSalesForceWMSUser['salesForceWMSUserId'], timestamp: timestamp}, ( status: number, response: any ) =>
+        API.api('GET', '/sales-force/wms/orders/collect/listen', request, ( status: number, response: any ) =>
         {
             console.log(status, response);
             // status -1 = Aborted
@@ -66,8 +84,9 @@ function Orders({ route, navigation }: screenProps)
             {
                 setOrders( (prev: any) => [...response['result'], ...prev]);
                 setOrdersExtraData( prev => !prev );
-                setTimestamp(response['lastTimestamp']);
-                setLoadOrdersCount( prev => ++prev );
+                setListenOrdersOffsetExternalSystemOrderId( response['biggestTimestampOffsetExternalSystemOrderId'] );
+                setListenOrdersBiggestTimestamp( response['biggestTimestamp'] );
+                setListenOrdersCount( prev => ++prev );
             }
             else
             {
@@ -76,14 +95,69 @@ function Orders({ route, navigation }: screenProps)
 
                 // Try again after 5 seconds
                 setTimeout(() => {
-                    setLoadOrdersCount( prev => ++prev );
+                    setListenOrdersCount( prev => ++prev );
                 }, 5000);
             }
-            setIsLoading(false);
-            setIsRefreshing(false);
         }, controller.current );
-            
-	}, [ loadOrdersCount ] );
+	}, [ listenOrdersCount ] );
+
+    useEffect(() =>
+	{
+        if ( loadOrdersCount === 0 )
+            return;
+
+        const request: any = {
+            sales_force_wms_user_id: selectedSalesForceWMSUser['salesForceWMSUserId'],
+            fetch_limit: 50
+        };
+
+        if ( loadOrdersLowestTimestamp !== 0 )
+            request.timestamp_lower_than = loadOrdersLowestTimestamp;
+
+        if ( loadOrdersOffsetExternalSystemOrderId !== "" )
+            request.offset_external_system_order_id = loadOrdersOffsetExternalSystemOrderId;
+
+        // carrega itens
+        API.api('GET', '/sales-force/wms/orders/collect', request, ( status: number, response: any ) =>
+        {
+            console.log(status, response);
+            // status -1 = Aborted
+            if ( status === -1 )
+            {
+                return;
+            }
+            if ( status === 200 )
+            {
+                const result = response['result'];
+                const resultLength = result.length;
+
+                if ( resultLength < request.fetch_limit )
+                {
+                    setMaxResultReached(true);
+                }
+
+                if ( resultLength > 0 )
+                {
+                    setOrders( (prev: any) => [...prev, ...result] );
+                    setOrdersExtraData( prev => !prev );
+                    setLoadOrdersLowestTimestamp( response['lowestTimestamp'] );
+                    setLoadOrdersOffsetExternalSystemOrderId( response['lowestTimestampOffsetExternalSystemOrderId'] );
+
+                    if ( listenOrdersCount === 0 )
+                    {
+                        setListenOrdersOffsetExternalSystemOrderId( response['biggestTimestampOffsetExternalSystemOrderId'] );
+                        setListenOrdersBiggestTimestamp( response['biggestTimestamp'] );
+                        //setListenOrdersCount( prev => ++prev );
+                    }
+                }
+            }
+            else
+            {
+
+            }
+            setIsLoadingOrders(false);
+        }, controller.current );
+    }, [ loadOrdersCount ]);
 
     useEffect(() =>
 	{
@@ -104,9 +178,18 @@ function Orders({ route, navigation }: screenProps)
         controller.current = new AbortController();
         
         setOrders([]);
-        setTimestamp(0);
-        setIsLoading(false);
-        setIsRefreshing(true);
+
+        // Listen parameters
+        setListenOrdersOffsetExternalSystemOrderId("");
+        setListenOrdersBiggestTimestamp(0);
+        setListenOrdersCount(0);
+
+        // Load parameters
+        setLoadOrdersLowestTimestamp(0);
+        setLoadOrdersOffsetExternalSystemOrderId("");
+
+        setLoadOrdersTriggerOrigin("refresh");
+        setIsLoadingOrders(false);
         setLoadOrdersCount( prev => ++prev );
     }, []);
     
@@ -119,27 +202,23 @@ function Orders({ route, navigation }: screenProps)
                 <FlatList
                     ListHeaderComponent=
                     {
-                        isLoading === true ?
+                        isLoadingOrders === true && loadOrdersTriggerOrigin === 'init' ?
                         <View style={{ marginTop: 25 }}>
                             <Text style={{ fontWeight: "bold", fontSize: 18, color: "#737373", textAlign: "center", marginBottom: 20}}>Carregando...</Text>
                             <ActivityIndicator size="large" />
                         </View>
                         :
-                        isLoading === false && isRefreshing === false ?
                         <View style={{ marginVertical: 25, flexDirection: "row", marginHorizontal: 20, justifyContent: "center" }}>
                             <ActivityIndicator size="small" />
                             <Text style={{ fontWeight: "bold", color: "#737373", textAlign: "center", marginLeft: 5}}>Esperando por novos pedidos...</Text>
-                            
                         </View>
-                        :
-                        <></>
                     }
                     showsVerticalScrollIndicator={true}
                     data={orders}
                     extraData={ordersExtraData}
                     keyExtractor={(order: any) => order['externalSystemOrderId'] }
                     refreshControl={
-                        <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+                        <RefreshControl refreshing={isLoadingOrders === true && loadOrdersTriggerOrigin === "refresh"} onRefresh={onRefresh} />
                     }
                     renderItem={ ({item: order}: any) =>
                     {
@@ -192,6 +271,30 @@ function Orders({ route, navigation }: screenProps)
                         </TouchableOpacity>
                         );
                     }}
+                    onEndReached={ () =>
+                    {
+                        if ( maxResultReached === true || isLoadingOrders === true || orders.length === 0 )
+                            return;
+
+                        setLoadOrdersTriggerOrigin('scroll');
+                        setIsLoadingOrders(true);
+                        setLoadOrdersCount( prev => ++prev );
+                    }}
+                    ListFooterComponent=
+                    {
+                        isLoadingOrders === true && loadOrdersTriggerOrigin === 'scroll' ?
+                        <View style={{ marginTop: 10, marginBottom: 20 }}>
+                            <Text style={{ fontWeight: "bold", fontSize: 18, color: "#737373", textAlign: "center", marginBottom: 20}}>Carregando mais resultados...</Text>
+                            <ActivityIndicator size="large" />
+                        </View>
+                        :
+                        maxResultReached === true && orders.length !== 0 ?
+                        <View style={{ marginHorizontal: "5%", marginTop: 10, marginBottom: 20 }}>
+                            <Text style={{ fontWeight: "bold", fontSize: 18, color: "#737373", textAlign: "center"}}>Não há mais pedidos para serem carregados</Text>
+                        </View> 
+                        :
+                        <></>
+                    }
                 />
             </View>
         </SafeAreaView>
